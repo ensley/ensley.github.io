@@ -1,0 +1,45 @@
+[
+  
+    {
+      "title"      : "Visualizing NHL Assist Data",
+      "url"        : "/blog/2017/06/visualizing-nhl-assist-data/",
+      "date"       : "2017-06-22 16:27:00 -0400",
+      "shortdate"  : "June 22, 2017"
+    } ,
+  
+    {
+      "title"      : "Interactive Correlation Matrix with D3",
+      "url"        : "/blog/2017/03/interactive-correlation-matrix-with-d3/",
+      "date"       : "2017-03-07 09:58:27 -0500",
+      "shortdate"  : "March 07, 2017"
+    } ,
+  
+    {
+      "title"      : "&quot;How Your Favorite Baseball Team Blows Its Money&quot;: Revisiting a FiveThirtyEight Analysis",
+      "url"        : "/blog/2017/02/how-your-favorite-baseball-team-blows-its-money-revisiting-a-fivethirtyeight-analysis/",
+      "date"       : "2017-02-22 00:00:00 -0500",
+      "shortdate"  : "February 22, 2017"
+    } ,
+  
+    {
+      "title"      : "Replacing Slow R Code with CUDA",
+      "url"        : "/blog/2016/09/replacing-slow-r-code-with-cuda/",
+      "date"       : "2016-09-16 00:00:00 -0400",
+      "shortdate"  : "September 16, 2016"
+    } ,
+  
+    {
+      "title"      : "Running CUDA Scripts on Penn State&#39;s ICS-ACI Cluster",
+      "url"        : "/blog/2016/09/running-cuda-scripts-on-penn-state-aci-cluster/",
+      "date"       : "2016-09-13 00:00:00 -0400",
+      "shortdate"  : "September 13, 2016"
+    } ,
+  
+    {
+      "title"      : "Speeding Up R Code with Parallelization",
+      "url"        : "/blog/2016/09/speeding-up-r-code-with-parallelization/",
+      "date"       : "2016-09-08 00:00:00 -0400",
+      "shortdate"  : "September 08, 2016"
+    } 
+  
+]

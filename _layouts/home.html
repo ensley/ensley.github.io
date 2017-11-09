@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!-->
+<html class="no-js" lang="{{ site.lang }}">
+<!--<![endif]-->
+
+<head>
+    {% include common/meta.html %}
+    <link href='{{ site.baseurl }}/assets/stylesheets/home.css' rel="stylesheet" type="text/css">
+    {% include common/libraries.html %}
+</head>
+
+  <body>
+    
+    <div class="title">
+      <h1>John Ensley</h1>
+      I am a statistician with a strong programming background and a keen interest in data science and data visualization.
+    </div>
+
+  <footer class="home-footer">
+    <ul class="home-nav">
+        <li><a href="{{ '/blog/' | relative_url }}">Blog</a></li>
+        <li><a href="{{ '/projects/' | relative_url }}">Projects</a></li>
+        <li><a href="{{ '/photography/' | relative_url }}">Photography</a></li>
+        <li><a href="{{ '/about/' | relative_url }}">About</a></li>
+        <li class="home-social social-links">
+        {% for link in site.author.social_links %}
+            {% if link.url %}
+                <a class="ico-{{ link.name }}" href="{{ link.url }}" title="{{ link.name }}"></a>
+            {% endif %}
+        {% endfor %}
+        <a href="{{ site.baseurl }}/feed.xml" class="ico-rss" title="feed"></a>
+      </li>
+    </ul>
+  </footer>
+
+  </body>
+
+</html>

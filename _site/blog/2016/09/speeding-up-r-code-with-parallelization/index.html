@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!-->
+<html class="no-js" lang="en">
+<!--<![endif]-->
+
+<head>
+    <meta charset="utf-8">
+<!--[if IE]><meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'><![endif]-->
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.3.0 -->
+<title>Speeding Up R Code with Parallelization | John Ensley</title>
+<meta property="og:title" content="Speeding Up R Code with Parallelization" />
+<meta name="author" content="John Ensley" />
+<meta property="og:locale" content="en" />
+<meta name="description" content="I’ve literally hit a speed bump in my research. I wrote a Markov chain Monte Carlo algorithm in R to estimate a parameter, and it appears to converge pretty well. The problem is that it takes a painfully long time to run. Each iteration takes around 30 seconds, and MCMC algorithms typically take at least 10,000 iterations to converge, so I’m looking at tying up my computer for three or four days at a time anytime I need to run something. Even using Penn State’s computing cluster doesn’t speed things up much, and as an added bonus that will terminate my job after 72 hours. So I desperately need to find a way to get my code running faster." />
+<meta property="og:description" content="I’ve literally hit a speed bump in my research. I wrote a Markov chain Monte Carlo algorithm in R to estimate a parameter, and it appears to converge pretty well. The problem is that it takes a painfully long time to run. Each iteration takes around 30 seconds, and MCMC algorithms typically take at least 10,000 iterations to converge, so I’m looking at tying up my computer for three or four days at a time anytime I need to run something. Even using Penn State’s computing cluster doesn’t speed things up much, and as an added bonus that will terminate my job after 72 hours. So I desperately need to find a way to get my code running faster." />
+<link rel="canonical" href="http://localhost:4000/blog/2016/09/speeding-up-r-code-with-parallelization/" />
+<meta property="og:url" content="http://localhost:4000/blog/2016/09/speeding-up-r-code-with-parallelization/" />
+<meta property="og:site_name" content="John Ensley" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2016-09-08T00:00:00-04:00" />
+<script type="application/ld+json">
+{"name":null,"description":"I’ve literally hit a speed bump in my research. I wrote a Markov chain Monte Carlo algorithm in R to estimate a parameter, and it appears to converge pretty well. The problem is that it takes a painfully long time to run. Each iteration takes around 30 seconds, and MCMC algorithms typically take at least 10,000 iterations to converge, so I’m looking at tying up my computer for three or four days at a time anytime I need to run something. Even using Penn State’s computing cluster doesn’t speed things up much, and as an added bonus that will terminate my job after 72 hours. So I desperately need to find a way to get my code running faster.","author":{"@type":"Person","name":"John Ensley"},"@type":"BlogPosting","url":"http://localhost:4000/blog/2016/09/speeding-up-r-code-with-parallelization/","publisher":null,"image":null,"headline":"Speeding Up R Code with Parallelization","dateModified":"2016-09-08T00:00:00-04:00","datePublished":"2016-09-08T00:00:00-04:00","sameAs":null,"mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/blog/2016/09/speeding-up-r-code-with-parallelization/"},"@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+<meta name="keywords" content="R,C,GPU" />
+
+
+
+
+
+<link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="John Ensley" />
+    <link href='/assets/stylesheets/blog.css' rel="stylesheet" type="text/css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
+<script>window.Modernizr || document.write('<script src="/assets/javascripts/modernizr-2.8.3.min.js"><\/script>')</script>
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script>
+    window.jQuery || document.write('<script src="/assets/javascripts/jquery-3.2.1.min.js"><\/script>')
+</script>
+
+<!-- <script src="//cdnjs.cloudflare.com/ajax/libs/pace/1.0.2/pace.min.js"></script>
+<script>
+    window.Pace || document.write('<script src="/assets/javascripts/pace.min.js"><\/script>')
+</script> -->
+
+<script>
+  (function(d) {
+    var config = {
+      kitId: "apq8pzh",
+      scriptTimeout: 3000,
+      async: true
+    },
+    h=d.documentElement,t=setTimeout(function(){h.className=h.className.replace(/\bwf-loading\b/g,"")+" wf-inactive";},config.scriptTimeout),tk=d.createElement("script"),f=false,s=d.getElementsByTagName("script")[0],a;h.className+=" wf-loading";tk.src='https://use.typekit.net/'+config.kitId+'.js';tk.async=true;tk.onload=tk.onreadystatechange=function(){a=this.readyState;if(f||a&&a!="complete"&&a!="loaded")return;f=true;clearTimeout(t);try{Typekit.load(config)}catch(e){}};s.parentNode.insertBefore(tk,s)
+  })(document);
+</script>
+
+
+    <script async src="https://www.google-analytics.com/analytics.js"></script>
+<script async src="/assets/javascripts/autotrack.js"></script>
+<script>
+
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-46465113-2', 'auto');
+
+ga('require', 'cleanUrlTracker', {
+  trailingSlash: 'remove'
+});
+ga('require', 'maxScrollTracker');
+ga('require', 'mediaQueryTracker', {
+  definitions: [
+    {
+      name: 'Breakpoint',
+      dimensionIndex: 1,
+      items: [
+        {name: 'sm', media: 'all'},
+        {name: 'md', media: '(min-width: 768px)'},
+        {name: 'lg', media: '(min-width: 1200px)'}
+      ]
+    },
+    {
+      name: 'Pixel Density',
+      dimensionIndex: 2,
+      items: [
+        {name: '1x',   media: 'all'},
+        {name: '1.5x', media: '(min-resolution: 144dpi)'},
+        {name: '2x',   media: '(min-resolution: 192dpi)'}
+      ]
+    },
+    {
+      name: 'Orientation',
+      dimensionIndex: 3,
+      items: [
+        {name: 'landscape', media: '(orientation: landscape)'},
+        {name: 'portrait',  media: '(orientation: portrait)'}
+      ]
+    }
+  ]
+});
+ga('require', 'outboundLinkTracker', {
+  events: ['click', 'auxclick', 'contextmenu']
+});
+ga('require', 'pageVisibilityTracker', {
+  sendInitialPageview: true,
+});
+
+ga('send', 'pageview');
+
+function sendGaEvent(category, action, element, value) {
+    var title = element.getAttribute('title');
+    var textConent = element.textContent ? element.textContent.trim() : undefined;
+    var label = (title && title.length !== 0) ? title : textConent;
+    ga('send', {
+        hitType: 'event',
+        eventCategory: category,
+        eventAction: action.trim(),
+        eventLabel: label,
+        eventValue: value
+    });
+}
+</script>
+
+</head>
+
+<body>
+
+    <div id="page" class="hentry">
+        <header class="the-header">
+    <div class="unit-head">
+        <div class="unit-inner unit-head-inner">
+            <nav class="nav-global">
+                <ul>
+                    <li class="logo nav-link">
+                        <button class="btn-menu" title="Menu"></button>
+                        <a href="/">John Ensley</a>
+                    </li>
+                    <li class="nav-link"><a title="Blog" href="/blog/">Blog</a></li>
+                    <li class="nav-link"><a title="Projects" href="/projects/">Projects</a></li>
+                    <li class="nav-link"><a title="Photography" href="/photography/">Photography</a></li>
+                    <li class="nav-link"><a title="About" href="/about/">About</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</header>
+
+
+        <div class="body animated fadeInDown" role="main">
+            <div class="unit-body">
+                <div class="unit-inner unit-body-inner">
+                    <div class="entry-content">
+                        <article class="unit-article layout-post">
+    <div class="unit-inner unit-article-inner">
+        <div itemscope itemtype="http://schema.org/Article" class="content">
+            <header>
+                <div class="unit-head">
+                    <div class="unit-inner unit-head-inner">
+                        <h1 class="entry-title" itemprop="name">Speeding Up R Code with Parallelization</h1>
+                    </div>
+                </div>
+            </header>
+            <div class="bd article-content">
+                <div class="entry-content">
+                    <div class="meta">
+                        <p class="date-publish">
+                            Published:
+                            <time itemprop="datePublished" class="date-pub updated"
+                                title="2016-09-08T00:00:00-04:00" datetime="2016-09-08T00:00:00-04:00">September 08, 2016 </time>
+                            by
+                            <a class="author" href="/" rel="author" title="Show Author">
+                                <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+                                    <span itemprop="name">John Ensley</span>
+                                </span>
+                            </a>
+                            
+                            
+                        </p>
+                        <ul class="list-category list-linear">
+                            <li class="list-head"><a title="Categories" href="/blog/categories/">Categories</a>: </li>
+                             
+     
+        <li>
+            <a href="/blog/categories/#Research" title="Research">
+            Research <span>3</span></a>
+        </li>
+    
+
+
+
+                        </ul>
+                        <ul class="list-tag list-linear">
+                            <li class="list-head"><a title="Tags" href="/blog/tags/">Tags</a>: </li>
+                             
+    
+        
+        <li>
+            <a href="/blog/tags/#C" title="C">C <span>3</span></a>
+        </li>
+    
+        
+        <li>
+            <a href="/blog/tags/#GPU" title="GPU">GPU <span>3</span></a>
+        </li>
+    
+        
+        <li>
+            <a href="/blog/tags/#R" title="R">R <span>3</span></a>
+        </li>
+    
+
+
+
+
+                        </ul>
+                    </div>
+                    <div itemprop="articleBody" class="article-body">
+                        <p>I’ve literally hit a speed bump in my research. I wrote a Markov chain Monte Carlo algorithm in R to estimate a parameter, and it appears to converge pretty well. The problem is that it takes a painfully long time to run. Each iteration takes around 30 seconds, and MCMC algorithms typically take at least 10,000 iterations to converge, so I’m looking at tying up my computer for three or four days at a time anytime I need to run something. Even using Penn State’s computing cluster doesn’t speed things up much, and as an added bonus that will terminate my job after 72 hours. So I desperately need to find a way to get my code running faster.</p>
+
+<p>My advisor and I think that the best option is to parallelize the code as much as possible and run it on a GPU. When code is run “the normal way”, on the CPU, it’s executed in sequence: one instruction runs until it finishes, then the next instruction, etc. The CPU is only doing one thing at a time. But a GPU is essentially made up of thousands of little tiny processors that are pretty weak on their own but can all communicate with each other. They are able to execute instructions at the same time, independently of each other, and then send their outputs to the CPU to be combined.</p>
+
+<p>Obviously, code executed in parallel should finish way sooner than code executed in sequence. There are some downsides though.</p>
+
+<ol>
+  <li>Not all algorithms are parallelizable. MCMC algorithms are actually a good example of something that isn’t easily executed in parallel, because the calculations at each iteration depend on the result of the previous one. If all 10,000 iterations were assigned to different processors and executed at the same time, it wouldn’t work, since each one wouldn’t know what to use as inputs. In my case, it’s not the MCMC itself that I need to parallelize, it’s a subroutine that occurs inside each MCMC step.</li>
+  <li>After parallelizing, sometimes we won’t see a speedup as dramatic as we expected, or it may actually be slower that code executed in sequence. This is because there is some overhead involved in running code on a GPU. The CPU has to figure out how to break up the code, then break it up, then distribute it to the GPU. Then, once the code has executed on the GPU, the results have to be read from the GPU, sent to the CPU, and recombined. The amount of time it takes a computer to do all of this is not insignificant. If the code doesn’t take all that long to run sequentially (say, a few minutes), then the advantage gained by parallelizing might be cancelled out by the extra time it takes for the CPU to sort everything out.</li>
+  <li>It’s a huge pain to write code that can run on a GPU. Nvidia has developed software called CUDA, which is basically an extension of C that is designed to communicate with Nvidia brand graphics cards. Just translating R code to C is daunting enough for a statistician like myself who is relatively unfamiliar with C, and CUDA just adds another tool to learn on top of that. But I am slowly starting to get comfortable with it.</li>
+</ol>
+
+<p>I plan on writing several more blog posts on this topic, mostly for my own reference, as I work on this problem. They will have more details on the specifics of moving to parallelization.</p>
+
+                    </div>
+                </div>
+            </div>
+            <footer class="unit-foot">
+                <div class="unit-inner unit-foot-inner">
+                    <div class="post-buttons">
+                        <a class="internal gotop" href="#page" title="Back to Top">Back to Top</a>
+                        
+                            <div class="addthis_toolbox addthis_default_style addthis_32x32_style">
+    <small class="label">Share Post:</small>
+    <a class="btn-share-post addthis_button_email"></a>
+    <a class="btn-share-post addthis_button_facebook"></a>
+    <a class="btn-share-post addthis_button_google_plusone_share"></a>
+    <a class="btn-share-post addthis_button_reddit"></a>
+    <a class="btn-share-post addthis_button_twitter"></a>
+</div>
+<script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-59d6642f0906b28f"></script>
+                        
+                    </div>
+                    <nav class="pagination">
+                        
+                        
+                            <a class="internal" rel="next" href="/blog/2016/09/running-cuda-scripts-on-penn-state-aci-cluster/" title="Next Post 'Running CUDA Scripts on Penn State's ICS-ACI Cluster'">Running CUDA Scripts on Penn State's ICS-ACI Cluster → </a>
+                        
+                    </nav>
+                </div>
+            </footer>
+            <div class="misc-content">
+                
+                    <script>
+    $(document).ready(function () {
+        var disqusPublicKey = "P0se57dcTUHLZ5wLHfxm3x11coj3QQCwTchefL9CbWCE1PuUxZ8hTwv7Zpy9sRcI";
+        var disqusShortname = "ensley";
+        var threadUrl = 'link:' + $('.comments .show-hidden').attr('data-disqus-url');
+
+        $.ajax({
+            type: 'GET',
+            url: '//disqus.com/api/3.0/threads/set.jsonp',
+            data: {
+                api_key: disqusPublicKey,
+                forum: disqusShortname,
+                thread: threadUrl
+            },
+            cache: false,
+            dataType: 'jsonp',
+            success: function (result) {
+                if (result.response.length === 1) {
+                    btnText = 'Show Comments (' + result.response[0].posts + ')';
+                    $('.comments .show-hidden').html(btnText);
+                }
+            }
+        });
+
+        $('.comments .show-hidden').on('click', function () {
+            $.ajaxSetup({cache: true});
+            $.getScript('//' + disqusShortname + '.disqus.com/embed.js');
+            $.ajaxSetup({cache: false});
+            $(this).remove();
+        });
+
+        if (/\#comments/.test(location.hash)) {
+            $('.comments .show-hidden').trigger('click');
+        }
+    });
+</script>
+
+                    <div class="comments">
+                        <button class="center-block show-hidden" title="Show Comments" data-disqus-url="http://localhost:4000/blog/2016/09/speeding-up-r-code-with-parallelization/">Show Comments</button>
+                        <div id="disqus_thread"></div>
+                    </div>
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer class="the-footer">
+    <div class="unit-foot">
+        <div class="unit-inner unit-foot-inner">
+            <div class="misc vcard">
+                <div class="about">
+                    <!-- <h4><a href="/">About</a></h4> -->
+                    
+                    <small>This site is powered by <a href="http://jekyllrb.com/">Jekyll</a>, <a href="https://kramdown.gettalong.org/">kramdown</a>, and <a href="https://pages.github.com/">GitHub Pages</a>.<br/>Based on the <a href="https://github.com/yizeng/jekyll-theme-simple-texture" target="_blank">Simple Texture</a> theme developed by <a href="http://yizeng.me" target="_blank">Yi Zeng</a>.</small>
+                </div>
+                <div class="social-links">
+                    
+                    <a class="ico-rss" href="/feed.xml" rel="me" target="_blank" title="feed"></a>
+                    
+                        
+                            <a class="ico-github" href="https://github.com/ensley/" rel="me" target="_blank" title="github"></a>
+                        
+                    
+                        
+                            <a class="ico-instagram" href="https://instagram.com/john.ensley/" rel="me" target="_blank" title="instagram"></a>
+                        
+                    
+                        
+                            <a class="ico-linkedin" href="https://linkedin.com/in/john-ensley-61455986/" rel="me" target="_blank" title="linkedin"></a>
+                        
+                    
+                        
+                            <a class="ico-twitter" href="https://twitter.com/john__ensley/" rel="me" target="_blank" title="twitter"></a>
+                        
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    <a href="#" class="internal back-to-top">Back to Top</a>
+</footer>
+
+    </div>
+
+    <script>
+$(document).ready(function () {
+    var offset = 50,
+        duration = 500,
+        width = 960;
+    $(window).scroll(function () {
+        if ($(window).width() > width) {
+            if ($(this).scrollTop() > offset) {
+                $('footer').css('top', '20px');
+                $('footer .back-to-top').fadeIn(duration);
+            } else {
+                $('footer').css('top', 'auto');
+                $('footer .back-to-top').fadeOut(duration);
+            }
+        }
+    });
+    $(window).resize(function () {
+        if ($(window).width() < width) {
+            $('footer').css('top', 'auto');
+            $('footer .back-to-top').fadeOut(duration);
+        }
+        if ($(window).width() >= width && $(this).scrollTop() > offset) {
+            $('footer').css('top', '20px');
+            $('footer .back-to-top').fadeIn(duration);
+        }
+    });
+
+    $('footer .back-to-top, .gotop').on('click', function (event) {
+        event.preventDefault();
+        $('html, body').animate({
+            scrollTop: 0
+        }, duration);
+        return false;
+    });
+
+    $('.show-hidden').on('click', function () {
+        $(this).parent().next().toggleClass("hidden");
+        $(this).toggleClass("hidden");
+    });
+});
+</script>
+
+<!-- Google Analytics Event tracking -->
+
+<script>
+$(document).on('click', 'footer .back-to-top, .gotop', function (event) {
+    sendGaEvent('Blog', 'Back to Top', event.currentTarget);
+});
+$(document).on('click', '.show-hidden', function (event) {
+    sendGaEvent('Post', 'Show Hidden', event.currentTarget);
+});
+$(document).on('click', 'a.internal', function(event) {
+    sendGaEvent('Blog', 'Navigate', event.currentTarget);
+});
+$('.the-header').on('click', '.nav-link a, [class$=wrapper] .results a, .nav-link button', function(event) {
+    sendGaEvent('Blog', 'Navigate', event.currentTarget);
+});
+$('.the-header').on('click', '.nav-link button', function(event) {
+    sendGaEvent('Blog', 'Navigate', event.currentTarget);
+});
+$('.the-footer').on('click', '.about h4 a', function(event) {
+    sendGaEvent('Blog', 'Go to About', event.currentTarget);
+});
+$('.the-footer').on('click', '.social-links a', function(event) {
+    sendGaEvent('Blog', 'Click Social Link', event.currentTarget);
+});
+$('.unit-article').on('click', '.tag_box.categories a', function(event) {
+    sendGaEvent('Blog', 'Click Category', event.currentTarget);
+});
+$('.unit-article').on('click', '.tag_box.tags a', function(event) {
+    sendGaEvent('Blog', 'Click Tag', event.currentTarget);
+});
+$('.unit-article').on('click', '.comments .show-hidden', function(event) {
+    sendGaEvent('Post', 'Show Comments', event.currentTarget);
+});
+$('.unit-article').on('click', '.meta .author', function(event) {
+    sendGaEvent('Post', 'Show Author', event.currentTarget);
+});
+$('.unit-article').on('click', '.meta .license-icon', function(event) {
+    sendGaEvent('Post', 'Show License', event.currentTarget);
+});
+$('.unit-article').on('click', '.meta .list-tag a', function(event) {
+    sendGaEvent('Post', 'Click Tag', event.currentTarget);
+});
+$('.unit-article').on('click', '.meta .list-category', function(event) {
+    sendGaEvent('Post', 'Click Category', event.currentTarget);
+});
+$('.unit-foot').delegate('.addthis_toolbox .btn-share-post', 'click', function(event) {
+    sendGaEvent('Post', 'Share Post', event.currentTarget);
+});
+$('.search-wrapper').on('click', '.results a', function(event) {
+    sendGaEvent('Search', 'Click Search Result', event.currentTarget);
+});
+$('.search-wrapper').on('click', '.btn-close', function(event) {
+    sendGaEvent('Search', 'Close Search', event.currentTarget);
+});
+</script>
+
+
+
+<script src='//cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.4/jquery.fancybox.min.js'></script>
+<script src='//cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.4/helpers/jquery.fancybox-buttons.min.js'></script>
+<script src="/assets/javascripts/unveil/jquery.unveil.min.js"></script>
+
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+<script>
+    window.jQuery.fancybox || document.write('<script src="/assets/javascripts/fancybox/jquery.fancybox.pack.js?v=2.1.4"><\/script>')
+    window.jQuery.fancybox.helpers.buttons || document.write('<script src="/assets/javascripts/fancybox/helpers/jquery.fancybox-buttons.js?v=1.0.5"><\/script>')
+</script>
+
+<script>
+    $("head").append('<link rel="stylesheet" href="/assets/javascripts/fancybox/jquery.fancybox.css?v=2.1.4" type="text/css" />');
+    $("head").append('<link rel="stylesheet" href="/assets/javascripts/fancybox/helpers/jquery.fancybox-buttons.css?v=1.0.5" type="text/css" />');
+    $(".post-image").fancybox({
+        prevEffect: 'none',
+        nextEffect: 'none',
+        closeBtn: true,
+        helpers: {
+            title: {
+                type: 'float'
+            }
+        }
+    });
+    $(document).ready(function () {
+        $(".post-image > img").unveil(450);
+    });
+</script>
+
+</body>
+
+</html>

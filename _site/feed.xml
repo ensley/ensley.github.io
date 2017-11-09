@@ -1,0 +1,935 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en"><generator uri="https://jekyllrb.com/" version="3.5.2">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" hreflang="en" /><updated>2017-11-08T19:53:36-05:00</updated><id>http://localhost:4000/</id><title type="html">John Ensley</title><subtitle></subtitle><author><name>John Ensley</name></author><entry><title type="html">Visualizing NHL Assist Data</title><link href="http://localhost:4000/blog/2017/06/visualizing-nhl-assist-data/" rel="alternate" type="text/html" title="Visualizing NHL Assist Data" /><published>2017-06-22T16:27:00-04:00</published><updated>2017-06-22T16:27:00-04:00</updated><id>http://localhost:4000/blog/2017/06/visualizing-nhl-assist-data</id><content type="html" xml:base="http://localhost:4000/blog/2017/06/visualizing-nhl-assist-data/">&lt;style&gt;
+#circle circle {
+	fill: none;
+	pointer-events: all;
+}
+
+svg.canvas {
+	margin-left: -20%;
+	font: 10px sans-serif;
+}
+
+.group path {
+	fill-opacity: .35;
+}
+
+path.ribbon {
+	stroke: #000;
+	stroke-width: .25px;
+	fill-opacity: 0.85;
+}
+
+#circle:hover path.fade {
+	display: none;
+}
+
+text.team {
+	font: 48px sans-serif;
+	text-anchor: end;
+	dominant-baseline: text-before-edge;
+	fill: #333;
+}
+
+text.total {
+	font: 36px sans-serif;
+	text-anchor: end;
+	dominant-baseline: text-before-edge;
+	fill: #333;
+}
+&lt;/style&gt;
+
+&lt;svg&gt;&lt;/svg&gt;
+
+&lt;p&gt;This is another practice run with &lt;a href=&quot;https://d3js.org/&quot;&gt;D3.js&lt;/a&gt;. With the Penguins winning their second straight Stanley Cup earlier this month, I wanted to look at some assist data from their championship season.&lt;/p&gt;
+
+&lt;p&gt;In the NHL, each time a goal is scored, up to two assists can be awarded to players on the goal scorer's team. If Player A passes the puck to Player B, who passes to Player C, and C scores, then A and B each get an assist. If only Player A had the puck before C scores, then A gets the only assist. It's also possible for nobody to have had the puck before C scores (usually because the opponent turned the puck over to him). In that case the goal was &quot;unassisted&quot;, and no assists are awarded.&lt;/p&gt;
+
+&lt;p&gt;It is very natural to think about assists in terms of a &lt;a href=&quot;https://en.wikipedia.org/wiki/Directed_graph&quot;&gt;directed graph&lt;/a&gt;. Each player is represented by a node, and if Player A assists on Player C's goal, an arrow is drawn from A to C. But what if we want to know &lt;em&gt;how many&lt;/em&gt; assists Player A has made on goals by Player C? With a directed graph we would need multiple arrows, which will quickly become unreadable on a graph with 30 or so nodes.&lt;/p&gt;
+
+&lt;p&gt;To more easily show the number of assists, I decided to go with a &lt;a href=&quot;https://en.wikipedia.org/wiki/Chord_diagram&quot;&gt;chord diagram&lt;/a&gt;. The thickness of the curved lines, called chords, between two players represents the number of assists between them. The thicker the chord, the more assists.&lt;/p&gt;
+
+&lt;p&gt;You might notice that the chords often have different thicknesses at each end. That's because they are &lt;em&gt;directed&lt;/em&gt;. For example, Phil Kessel had 15 assists to Evgeni Malkin, but Malkin only had 7 assists to Kessel.&lt;/p&gt;
+
+&lt;p&gt;The players are arranged around the circle by position. Forwards are shown in yellow, defensemen in black, and goalies in blue (Matt Murray had two assists, but sadly no goals). Chords are colored according to the position of the player with more assists. For instance, Justin Schultz, a defenseman, had 7 assists to Evgeni Malkin, a forward, and Malkin had 6 to Schultz, so the chord between them is black.&lt;/p&gt;
+
+&lt;p&gt;Mouse over a player's name to only display assists involving that player. By hovering on the name you can see how many assists he had that season. Hovering over a chord will show you the number of assists between the two players in question.&lt;/p&gt;
+
+&lt;p&gt;You can see the code &lt;a href=&quot;https://bl.ocks.org/ensley/32def8d94f2b049bd583d8a6763503b7&quot;&gt;here&lt;/a&gt;. It's also &lt;a href=&quot;https://github.com/ensley/d3/tree/master/assists&quot;&gt;hosted on GitHub&lt;/a&gt;. I borrowed heavily from &lt;a href=&quot;https://bost.ocks.org/mike/uberdata/&quot;&gt;Mike Bostock's visualization of Uber rides&lt;/a&gt; to create this. I collected the data using the fantastic &lt;a href=&quot;https://www.mysportsfeeds.com/&quot;&gt;MySportsFeeds&lt;/a&gt; service and processed it in R.&lt;/p&gt;
+
+&lt;script src=&quot;//d3js.org/d3.v4.min.js&quot;&gt;&lt;/script&gt;
+
+&lt;script type=&quot;text/javascript&quot;&gt;
+	
+	var width = 720,
+	height = 720,
+	outerRadius = Math.min(width, height) / 2 - 10,
+	innerRadius = outerRadius - 24,
+	textWidth = 300;
+
+
+var layout = d3.chord()
+	.padAngle(0.03)
+	.sortSubgroups(d3.descending)
+	.sortChords(d3.ascending);
+
+var arc = d3.arc()
+	.innerRadius(innerRadius)
+	.outerRadius(outerRadius);
+
+var ribbon = d3.ribbon()
+	.radius(innerRadius);
+
+var svg = d3.select('svg')
+		.attr('class', 'canvas')
+		.attr('width', width+textWidth)
+		.attr('height', height)
+
+svg.append('g')
+		.attr('class', 'label')
+	.append('text')
+		.attr('class', 'team')
+		.attr('x', width+textWidth)
+		.attr('y', 0)
+		.text('Pittsburgh Penguins')
+
+svg = svg.append('g')
+		.attr('id', 'circle')
+		.attr('transform', 'translate('+width/2+','+height/2+')');
+
+svg.append('circle')
+	.attr('r', outerRadius);
+
+
+
+d3.queue()
+	.defer(d3.csv, '/assets/data/assists/roster.csv')
+	.defer(d3.json, '/assets/data/assists/matrix.json')
+	.await(ready);
+
+
+function ready(error, roster, matrix) {
+	if (error) throw error;
+
+	var chords = layout(matrix);
+
+	console.log(chords.groups);
+
+	var groups = svg.selectAll('.group')
+		.data(chords.groups)
+		.enter().append('g')
+		.attr('class', 'group')
+		.on('mouseover', mouseover);
+
+	groups.append('title')
+		.text(function(d, i) {
+			return roster[i].first + ' ' + roster[i].last + ': ' + d.value + ' assists';
+		});
+
+	var groupPaths = groups.append('path')
+		.attr('id', function(d, i) { return 'group'+i; })
+		.attr('class', 'player')
+		.attr('d', arc)
+		.style('fill', function(d, i) { console.log(roster[i].color); return roster[i].color; });
+
+	var groupText = groups.append('text')
+		.attr('x', 6)
+		.attr('dx', 3)
+		.attr('dy', 15);
+
+	groupText.append('textPath')
+		.attr('xlink:href', function(d, i) { return '#group' + i; })
+		.text(function(d, i) { return roster[i].last; });
+
+	groupText.filter(function(d, i) {
+		return groupPaths._groups[0][i].getTotalLength() / 2 - 25 &lt; this.getComputedTextLength();
+	}).remove();
+
+	var ribbons = svg.selectAll('.ribbon')
+		.data(chords)
+		.enter().append('path')
+		.attr('class', 'ribbon')
+		.style('fill', function(d) { return roster[d.source.index].color; })
+		.attr('d', ribbon);
+
+	ribbons.append('title')
+		.text(function(d) {
+			return roster[d.source.index].first + ' ' + roster[d.source.index].last
+				+ ' → ' + roster[d.target.index].first + ' ' + roster[d.target.index].last
+				+ ': ' + d.source.value + ' assists'
+				+ '\n' + roster[d.target.index].first + ' ' + roster[d.target.index].last
+				+ ' → ' + roster[d.source.index].first + ' ' + roster[d.source.index].last
+				+ ': ' + d.target.value + ' assists'
+		});
+
+	d3.select('.label').append('text')
+		.attr('class', 'total')
+		.attr('x', width+textWidth)
+		.attr('y', '50')
+		.text('Total assists: '+d3.sum(matrix, function(row) {
+			return d3.sum(row);
+		}));
+
+	function mouseover(d, i) {
+		ribbons.classed('fade', function(p) {
+			return p.source.index != i
+				&amp;&amp; p.target.index != i;
+		});
+	}
+}
+
+&lt;/script&gt;</content><author><name>John Ensley</name></author><category term="d3" /><category term="web scraping" /><category term="hockey" /><summary type="html"></summary></entry><entry><title type="html">Interactive Correlation Matrix with D3</title><link href="http://localhost:4000/blog/2017/03/interactive-correlation-matrix-with-d3/" rel="alternate" type="text/html" title="Interactive Correlation Matrix with D3" /><published>2017-03-07T09:58:27-05:00</published><updated>2017-03-07T09:58:27-05:00</updated><id>http://localhost:4000/blog/2017/03/interactive-correlation-matrix-with-d3</id><content type="html" xml:base="http://localhost:4000/blog/2017/03/interactive-correlation-matrix-with-d3/">&lt;style&gt;
+    #canvas {
+        margin-left: -20%;
+    }
+
+    .axis path,
+    .axis line {
+        fill: none;
+        stroke: none;
+        shape-rendering: crispEdges;
+    }
+
+    .axis text {
+        font-family: sans-serif;
+        font-size: 12px;
+    }
+&lt;/style&gt;
+
+&lt;svg id=&quot;canvas&quot;&gt;&lt;/svg&gt;
+
+&lt;p&gt;Recently I decided that if I wanted to improve my data visualization skills, I should become more familiar with &lt;a href=&quot;https://d3js.org&quot;&gt;D3.js&lt;/a&gt;. D3 is a JavaScript library that allows you to manipulate documents by associating elements with some data that you provide. It's not exactly a visualization library, like &lt;a href=&quot;http://www.highcharts.com/&quot;&gt;Highcharts&lt;/a&gt; or &lt;a href=&quot;https://plot.ly/javascript/&quot;&gt;plotly&lt;/a&gt;. It doesn't have built-in chart types. Instead, it allows you to connect existing web standards like HTML, SVG, and CSS directly to your data. This makes D3 extremely powerful and flexible, but also difficult to learn.&lt;/p&gt;
+
+&lt;p&gt;Hearing about the steep learning curve scared me away from D3 at first, but ultimately I'm giving it a shot. After all, I'm not a total newcomer to JavaScript, and I like to think I can pick these types of things up pretty quickly, so maybe it won't be so bad.&lt;/p&gt;
+
+&lt;p&gt;Here is my first attempt at making something useful: a correlation matrix where clicking on cell &lt;script type=&quot;math/tex&quot;&gt;(i,j&lt;/script&gt;) draws the scatterplot between variables &lt;script type=&quot;math/tex&quot;&gt;(i&lt;/script&gt;) and &lt;script type=&quot;math/tex&quot;&gt;(j&lt;/script&gt;). I borrowed heavily from &lt;a href=&quot;https://www.biostat.wisc.edu/~kbroman/D3/corr_w_scatter/&quot;&gt;Karl Broman's example&lt;/a&gt;. I found it very helpful to use that as a reference, since I'm not yet comfortable enough to make anything moderately involved on my own.&lt;/p&gt;
+
+&lt;p&gt;I got the data from a recent &lt;a href=&quot;https://www.kaggle.com/c/house-prices-advanced-regression-techniques&quot;&gt;Kaggle competition&lt;/a&gt; on housing prices. I did a small amount of cleaning and removed all the categorical variables for the purposes of this illustration.&lt;/p&gt;
+
+&lt;p&gt;The size of the circles represent the strength of the correlation between each pair of variables. Blue indicates a positive correlation, red indicates a negative correlation. Hover over a cell to see the two variables and their correlation coefficient. Click on a cell to draw the scatterplot.&lt;/p&gt;
+
+&lt;p&gt;You can see the code &lt;a href=&quot;https://bl.ocks.org/ensley/b289692852c62912208b4ea5b3c8ae68&quot;&gt;here&lt;/a&gt;. It's also &lt;a href=&quot;https://github.com/ensley/d3/tree/master/correlation&quot;&gt;hosted on GitHub&lt;/a&gt;.&lt;/p&gt;
+
+&lt;script src=&quot;//d3js.org/d3.v3.min.js&quot;&gt;&lt;/script&gt;
+
+&lt;script type=&quot;text/javascript&quot;&gt;
+
+    var w = 400,
+        h = 400;
+    
+    var margin = {top: 50, right: 20, bottom: 70, left: 20};
+    var pad = 80;
+    var width = 2 * w + pad;
+
+    var svg = d3.select('#canvas')
+        .attr({
+            'width': width + margin.left + margin.right,
+            'height': h + margin.top + margin.bottom
+        })
+        .append('g')
+        .attr({
+            'transform': 'translate(' + margin.left + ',' + margin.top + ')',
+            'width': width,
+            'height': h
+        });
+
+    var corrplot = svg.append('g')
+        .attr({
+            'id': 'corrplot'
+        });
+
+    var scatterplot = svg.append('g')
+        .attr({
+            'id': 'scatterplot',
+            'transform': 'translate(' + (w + pad) + ',0)'
+        });
+
+    corrplot.append('text')
+        .text('Correlation matrix')
+        .attr({
+            'class': 'plottitle',
+            'x': w/2,
+            'y': -margin.top/2,
+            'dominant-baseline': 'middle',
+            'text-anchor': 'middle'
+        });
+
+    scatterplot.append('text')
+        .text('Scatter plot')
+        .attr({
+            'class': 'plottitle',
+            'x': w/2,
+            'y': -margin.top/2,
+            'dominant-baseline': 'middle',
+            'text-anchor': 'middle'
+        });
+
+    var corXscale = d3.scale.ordinal().rangeRoundBands([0,w]),
+        corYscale = d3.scale.ordinal().rangeRoundBands([h,0]),
+        corColScale = d3.scale.linear().domain([-1,0,1]).range(['crimson','white','slateblue']);
+    var corRscale = d3.scale.sqrt().domain([0,1]);
+
+    d3.json('/assets/data/d3-correlation-data/housing.json', function(err, data) {
+        var nind = data.ind.length,
+            nvar = data.vars.length;
+
+        corXscale.domain(d3.range(nvar));
+        corYscale.domain(d3.range(nvar));
+        corRscale.range([0,0.5*corXscale.rangeBand()]);
+
+        var corr = [];
+        for (var i = 0; i &lt; data.corr.length; ++i) {
+            for (var j = 0; j &lt; data.corr[i].length; ++j) {
+                corr.push({row: i, col: j, value:data.corr[i][j]});
+            }
+        }
+
+        var cells = corrplot.append('g')
+            .attr('id', 'cells')
+            .selectAll('empty')
+            .data(corr)
+            .enter().append('g')
+            .attr({
+                'class': 'cell'
+            })
+            .style('pointer-events', 'all');
+
+        var rects = cells.append('rect')
+            .attr({
+                'x': function(d) { return corXscale(d.col); },
+                'y': function(d) { return corXscale(d.row); },
+                'width': corXscale.rangeBand(),
+                'height': corYscale.rangeBand(),
+                'fill': 'none',
+                'stroke': 'none',
+                'stroke-width': '1'
+            });
+
+        var circles = cells.append('circle')
+            .attr('cx', function(d) {return corXscale(d.col) + 0.5*corXscale.rangeBand(); })
+            .attr('cy', function(d) {return corXscale(d.row) + 0.5*corYscale.rangeBand(); })
+            .attr('r', function(d) {return corRscale(Math.abs(d.value)); })
+            .style('fill', function(d) { return corColScale(d.value); });
+
+        corrplot.selectAll('g.cell')
+            .on('mouseover', function(d) {
+                d3.select(this)
+                    .select('rect')
+                    .attr('stroke', 'black');
+
+                var xPos = parseFloat(d3.select(this).select('rect').attr('x'));
+                var yPos = parseFloat(d3.select(this).select('rect').attr('y'));
+
+                corrplot.append('text')
+                    .attr({
+                        'class': 'corrlabel',
+                        'x': corXscale(d.col),
+                        'y': h + margin.bottom*0.2
+                    })
+                    .text(data.vars[d.col])
+                    .attr({
+                        'dominant-baseline': 'middle',
+                        'text-anchor': 'middle'
+                    });
+
+                corrplot.append('text')
+                    .attr({
+                        'class': 'corrlabel'
+                        // 'x': -margin.left*0.1,
+                        // 'y': corXscale(d.row)
+                    })
+                    .text(data.vars[d.row])
+                    .attr({
+                        'dominant-baseline': 'middle',
+                        'text-anchor': 'middle',
+                        'transform': 'translate(' + (-margin.left*0.1) + ',' + corXscale(d.row) + ')rotate(270)'
+                    });
+
+                corrplot.append('rect')
+                    .attr({
+                        'class': 'tooltip',
+                        'x': xPos + 10,
+                        'y': yPos - 30,
+                        'width': 40,
+                        'height': 20,
+                        'fill': 'rgba(200, 200, 200, 0.5)',
+                        'stroke': 'black'
+                    });
+
+                corrplot.append('text')
+                    .attr({
+                        'class': 'tooltip',
+                        'x': xPos + 30,
+                        'y': yPos - 15,
+                        'text-anchor': 'middle',
+                        'font-family': 'sans-serif',
+                        'font-size': '14px',
+                        'font-weight': 'bold',
+                        'fill': 'black'
+                    })
+                    .text(d3.format('.2f')(d.value));
+            })
+            .on('mouseout', function(d) {
+                d3.select('#corrtext').remove();
+                d3.selectAll('.corrlabel').remove();
+                d3.select(this)
+                    .select('rect')
+                    .attr('stroke', 'none');
+                //Hide the tooltip
+                d3.selectAll('.tooltip').remove();
+            })
+            .on('click', function(d) {
+                drawScatter(d.col, d.row);
+            });
+
+        var drawScatter = function(col, row) {
+            console.log('column ' + col + ', row ' + row);
+
+            d3.selectAll('.points').remove();
+            d3.selectAll('.axis').remove();
+            d3.selectAll('.scatterlabel').remove();
+
+            var xScale = d3.scale.linear()
+                .domain(d3.extent(data.dat[col]))
+                .range([0, w]);
+            var yScale = d3.scale.linear()
+                .domain(d3.extent(data.dat[row]))
+                .range([h, 0]);
+
+            var xAxis = d3.svg.axis()
+                .scale(xScale)
+                .orient('bottom')
+                .ticks(5);
+
+            var yAxis = d3.svg.axis()
+                .scale(yScale)
+                .orient('left');
+
+            scatterplot.append('g')
+                .attr('class', 'points')
+                .selectAll('empty')
+                .data(d3.range(nind))
+                .enter().append('circle')
+                .attr({
+                    'class': 'point',
+                    'cx': function(d) {
+                        return xScale(data.dat[col][d]);
+                    },
+                    'cy': function(d) {
+                        return yScale(data.dat[row][d]);
+                    },
+                    'r': 2,
+                    'stroke': 'none',
+                    'fill': 'black'
+                });
+
+            scatterplot.append('g')
+                .attr('class', 'x axis')
+                .attr('transform', 'translate(0,' + h + ')')
+                .call(xAxis);
+
+            scatterplot.append('g')
+                .attr('class', 'y axis')
+                .call(yAxis);
+
+            scatterplot.append('text')
+                .text(data.vars[col])
+                .attr({
+                    'class': 'scatterlabel',
+                    'x': w/2,
+                    'y': h + margin.bottom/2,
+                    'text-anchor': 'middle',
+                    'dominant-baseline': 'middle'
+                });
+
+            scatterplot.append('text')
+                .text(data.vars[row])
+                .attr({
+                    'class': 'scatterlabel',
+                    'transform': 'translate(' + (-pad/1.25) + ',' + (h/2) + ')rotate(270)',
+                    'dominant-baseline': 'middle',
+                    'text-anchor': 'middle'
+                });
+
+        }
+    });
+
+
+
+&lt;/script&gt;</content><author><name>John Ensley</name></author><category term="d3" /><category term="kaggle" /><summary type="html"></summary></entry><entry><title type="html">&quot;How Your Favorite Baseball Team Blows Its Money&quot;: Revisiting a FiveThirtyEight Analysis</title><link href="http://localhost:4000/blog/2017/02/how-your-favorite-baseball-team-blows-its-money-revisiting-a-fivethirtyeight-analysis/" rel="alternate" type="text/html" title="&quot;How Your Favorite Baseball Team Blows Its Money&quot;: Revisiting a FiveThirtyEight Analysis" /><published>2017-02-22T00:00:00-05:00</published><updated>2017-02-22T00:00:00-05:00</updated><id>http://localhost:4000/blog/2017/02/how-your-favorite-baseball-team-blows-its-money-revisiting-a-fivethirtyeight-analysis</id><content type="html" xml:base="http://localhost:4000/blog/2017/02/how-your-favorite-baseball-team-blows-its-money-revisiting-a-fivethirtyeight-analysis/">&lt;p&gt;In 2015, FiveThirtyEight &lt;a href=&quot;http://fivethirtyeight.com/features/dont-be-fooled-by-baseballs-small-budget-success-stories/&quot;&gt;published an article&lt;/a&gt; taking a look at one of the most common questions in baseball: does money buy success? Most major sports leagues in America have a &quot;salary cap,&quot; a limit on the amount of money a team can spend on player salaries each year. This is used to promote parity across all teams - otherwise, teams with deep pockets could afford to sign all the top tier players, giving them a competitive advantage year after year. Major League Baseball doesn't have a salary cap though. The Los Angeles Dodgers paid their players a total of $265 million in 2015, while the Cleveland Indians had a payroll of only $59 million. So in general, FiveThirtyEight asked, does more money mean more wins?&lt;/p&gt;
+
+&lt;p&gt;It would appeal to our affinity for underdogs if the answer was no, but unfortunately &lt;a href=&quot;http://fivethirtyeight.com/features/how-your-favorite-baseball-team-blows-its-money/&quot;&gt;that is not the case&lt;/a&gt;. The gray curve on each of those graphs is the league-wide trend in winning percentage as a function of salary. Basically, the upward slope indicates that teams with higher payrolls tend to win more games.&lt;/p&gt;
+
+&lt;p&gt;It's an interesting read. You'll notice that their x-axis is &quot;standardized salary,&quot; ranging from about -2 to +2. The authors explain that &quot;Salary and win percentage were standardized within each season to account for the league’s financial growth and changes in league competitiveness.&quot; They calculated a z-score for every team's payroll for each year. This means that for each team, they found the mean payroll for that year, subtracted it from the team's payroll, and divided by the year's standard deviation. The result is a number indicating how many standard deviations above or below the mean that team's payroll was. I wanted to look at a slightly different method for standardizing: percentiles. A percentile is a value below which a certain percentage of values lie. For example, the Dodgers had the highest payroll in the league in 2015, putting them in the 100th percentile; every other team's payroll was below theirs. The Pirates, on the other hand, had the 20th highest payroll of the 30 teams. They were in the 34th percentile.&lt;/p&gt;
+
+&lt;p&gt;I found some data put together by &lt;a href=&quot;http://blog.yhat.com/posts/replicating-five-thirty-eight-in-r.html&quot;&gt;another blogger&lt;/a&gt; for a similar post. This data includes team-by-team payrolls and wins and losses, as well as a table mapping old teams (like the Montreal Expos) to the present-day versions (the Washington Nationals). There is also a table of official team colors that we'll use to make the final results look nice.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-r&quot; data-lang=&quot;r&quot;&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;read_csv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'mlb-standings-and-payroll.csv'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;team_lookups&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;read_csv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'team-lookups.csv'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;team_colors&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;read_csv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'team-colors.csv'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;glimpse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;## Observations: 1,592
+## Variables: 40
+## $ tm                 &amp;lt;chr&amp;gt; &quot;ANA&quot;, &quot;ANA&quot;, &quot;ANA&quot;, &quot;ANA&quot;, &quot;ANA&quot;, &quot;ANA&quot;, &quot;...
+## $ year               &amp;lt;int&amp;gt; 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2...
+## $ attendance         &amp;lt;int&amp;gt; 1767330, 2519280, 2253123, 2066982, 2000919...
+## $ attend_per_game    &amp;lt;int&amp;gt; 21553, 31102, 27816, 25518, 24703, 28464, 3...
+## $ batage             &amp;lt;dbl&amp;gt; 29.7, 28.7, 28.8, 27.7, 28.0, 28.5, 29.1, 2...
+## $ page               &amp;lt;dbl&amp;gt; 28.3, 29.8, 31.5, 28.9, 28.9, 30.2, 29.0, 2...
+## $ bpf                &amp;lt;int&amp;gt; 102, 102, 99, 102, 101, 100, 98, 97, 100, 1...
+## $ ppf                &amp;lt;int&amp;gt; 102, 102, 99, 102, 100, 99, 97, 96, 99, 100...
+## $ n_hof              &amp;lt;int&amp;gt; 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2...
+## $ n_aallstars        &amp;lt;int&amp;gt; 1, 2, 1, 2, 2, 1, 3, 2, 1, 4, 2, 3, 6, 1, 1...
+## $ n_a_ta_s           &amp;lt;int&amp;gt; 15, 16, 11, 12, 7, 11, 12, 15, 7, 14, 13, 1...
+## $ est_payroll        &amp;lt;int&amp;gt; 31135472, 41791000, 55633166, 52664167, 477...
+## $ time               &amp;lt;time&amp;gt; 03:06:00, 02:58:00, 02:52:00, 03:05:00, 02...
+## $ managers           &amp;lt;chr&amp;gt; &quot;Collins&quot;, &quot;Collins&quot;, &quot;Collins and Maddon&quot;,...
+## $ X15                &amp;lt;int&amp;gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
+## $ X16                &amp;lt;int&amp;gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
+## $ X17                &amp;lt;chr&amp;gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
+## $ rk                 &amp;lt;int&amp;gt; 11, 12, 23, 15, 20, 4, 19, 6, 28, 2, 13, 6,...
+## $ lg                 &amp;lt;chr&amp;gt; &quot;AL&quot;, &quot;AL&quot;, &quot;AL&quot;, &quot;AL&quot;, &quot;AL&quot;, &quot;AL&quot;, &quot;AL&quot;, &quot;...
+## $ g                  &amp;lt;int&amp;gt; 162, 162, 162, 162, 162, 162, 162, 162, 162...
+## $ w                  &amp;lt;int&amp;gt; 84, 85, 70, 82, 75, 99, 77, 92, 65, 100, 85...
+## $ l                  &amp;lt;int&amp;gt; 78, 77, 92, 80, 87, 63, 85, 70, 97, 62, 77,...
+## $ wins_losses        &amp;lt;dbl&amp;gt; 0.518, 0.525, 0.432, 0.506, 0.463, 0.611, 0...
+## $ r                  &amp;lt;dbl&amp;gt; 5.1, 4.9, 4.4, 5.3, 4.3, 5.3, 4.5, 5.2, 4.1...
+## $ ra                 &amp;lt;dbl&amp;gt; 4.9, 4.8, 5.1, 5.4, 4.5, 4.0, 4.6, 4.5, 5.0...
+## $ rdiff              &amp;lt;dbl&amp;gt; 0.2, 0.0, -0.7, 0.0, -0.2, 1.3, 0.0, 0.6, -...
+## $ sos                &amp;lt;dbl&amp;gt; 0.0, 0.0, -0.2, 0.1, 0.2, 0.1, 0.1, 0.1, 0....
+## $ srs                &amp;lt;dbl&amp;gt; 0.2, 0.0, -0.9, 0.1, 0.0, 1.3, 0.0, 0.7, -0...
+## $ pythwl             &amp;lt;chr&amp;gt; &quot;84-78&quot;, &quot;81-81&quot;, &quot;70-92&quot;, &quot;81-81&quot;, &quot;77-85&quot;...
+## $ luck               &amp;lt;int&amp;gt; 0, 4, 0, 1, -2, -2, -3, 1, -1, -2, 0, -3, 3...
+## $ home               &amp;lt;chr&amp;gt; &quot;46-36&quot;, &quot;42-39&quot;, &quot;37-44&quot;, &quot;46-35&quot;, &quot;39-42&quot;...
+## $ road               &amp;lt;chr&amp;gt; &quot;38-42&quot;, &quot;43-38&quot;, &quot;33-48&quot;, &quot;36-45&quot;, &quot;36-45&quot;...
+## $ exinn              &amp;lt;chr&amp;gt; &quot;5-8&quot;, &quot;6-6&quot;, &quot;4-8&quot;, &quot;9-7&quot;, &quot;7-8&quot;, &quot;10-5&quot;, ...
+## $ `1run`             &amp;lt;chr&amp;gt; &quot;27-25&quot;, &quot;24-19&quot;, &quot;23-25&quot;, &quot;32-23&quot;, &quot;24-24&quot;...
+## $ vrhp               &amp;lt;chr&amp;gt; &quot;66-55&quot;, &quot;62-59&quot;, &quot;51-73&quot;, &quot;61-55&quot;, &quot;53-60&quot;...
+## $ vlhp               &amp;lt;chr&amp;gt; &quot;18-23&quot;, &quot;23-18&quot;, &quot;19-19&quot;, &quot;21-25&quot;, &quot;22-27&quot;...
+## $ vs_teams_above_500 &amp;lt;chr&amp;gt; &quot;23-34&quot;, &quot;30-36&quot;, &quot;27-45&quot;, &quot;42-49&quot;, &quot;37-55&quot;...
+## $ vs_teams_below_500 &amp;lt;chr&amp;gt; &quot;61-44&quot;, &quot;55-41&quot;, &quot;43-47&quot;, &quot;40-31&quot;, &quot;38-32&quot;...
+## $ inter              &amp;lt;chr&amp;gt; &quot;4-12&quot;, &quot;10-6&quot;, &quot;6-12&quot;, &quot;12-6&quot;, &quot;10-8&quot;, &quot;11...
+## $ last_year          &amp;lt;int&amp;gt; 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2...&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-r&quot; data-lang=&quot;r&quot;&gt;&lt;span class=&quot;n&quot;&gt;glimpse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;team_lookups&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;## Observations: 45
+## Variables: 2
+## $ historic_team &amp;lt;chr&amp;gt; &quot;ANA&quot;, &quot;ARI&quot;, &quot;ATL&quot;, &quot;BAL&quot;, &quot;BOS&quot;, &quot;BRO&quot;, &quot;BSN&quot;,...
+## $ modern_team   &amp;lt;chr&amp;gt; &quot;LAA&quot;, &quot;ARI&quot;, &quot;ATL&quot;, &quot;BAL&quot;, &quot;BOS&quot;, &quot;LAD&quot;, &quot;ATL&quot;,...&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-r&quot; data-lang=&quot;r&quot;&gt;&lt;span class=&quot;n&quot;&gt;glimpse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;team_colors&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;## Observations: 30
+## Variables: 7
+## $ team_name       &amp;lt;chr&amp;gt; &quot;Arizona Diamondbacks&quot;, &quot;Atlanta Braves&quot;, &quot;Bal...
+## $ tm              &amp;lt;chr&amp;gt; &quot;ARI&quot;, &quot;ATL&quot;, &quot;BAL&quot;, &quot;BOS&quot;, &quot;CHC&quot;, &quot;CHW&quot;, &quot;CIN...
+## $ team_color      &amp;lt;chr&amp;gt; &quot;#A71930&quot;, &quot;#B71234&quot;, &quot;#ed4c09&quot;, &quot;#C60C30&quot;, &quot;#...
+## $ primary_color   &amp;lt;chr&amp;gt; &quot;#A71930&quot;, &quot;#002F5F&quot;, &quot;#ed4c09&quot;, &quot;#C60C30&quot;, &quot;#...
+## $ secondary_color &amp;lt;chr&amp;gt; &quot;#000000&quot;, &quot;#B71234&quot;, &quot;#000000&quot;, &quot;#002244&quot;, &quot;#...
+## $ league          &amp;lt;chr&amp;gt; &quot;NL&quot;, &quot;NL&quot;, &quot;AL&quot;, &quot;AL&quot;, &quot;NL&quot;, &quot;AL&quot;, &quot;NL&quot;, &quot;AL&quot;...
+## $ division        &amp;lt;chr&amp;gt; &quot;NL West&quot;, &quot;NL East&quot;, &quot;AL East&quot;, &quot;AL East&quot;, &quot;N...&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;First of all, the data only has reliable payroll information dating back to 1985. Let's filter out all teams from before 1985, drop columns we won't be using for this analysis, and join the table to the other two.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-r&quot; data-lang=&quot;r&quot;&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; 
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;year&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1985&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; 
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;select&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;year&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;w&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;wins_losses&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;est_payroll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; 
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;left_join&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;team_lookups&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;by&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'tm'&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'historic_team'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; 
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;left_join&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;team_colors&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;by&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'modern_team'&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'tm'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;glimpse&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-text&quot; data-lang=&quot;text&quot;&gt;## Observations: 858
+## Variables: 13
+## $ tm              &amp;lt;chr&amp;gt; &quot;ANA&quot;, &quot;ANA&quot;, &quot;ANA&quot;, &quot;ANA&quot;, &quot;ANA&quot;, &quot;ANA&quot;, &quot;ANA...
+## $ year            &amp;lt;int&amp;gt; 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004...
+## $ w               &amp;lt;int&amp;gt; 84, 85, 70, 82, 75, 99, 77, 92, 65, 100, 85, 9...
+## $ g               &amp;lt;int&amp;gt; 162, 162, 162, 162, 162, 162, 162, 162, 162, 1...
+## $ wins_losses     &amp;lt;dbl&amp;gt; 0.518, 0.525, 0.432, 0.506, 0.463, 0.611, 0.47...
+## $ est_payroll     &amp;lt;int&amp;gt; 31135472, 41791000, 55633166, 52664167, 477351...
+## $ modern_team     &amp;lt;chr&amp;gt; &quot;LAA&quot;, &quot;LAA&quot;, &quot;LAA&quot;, &quot;LAA&quot;, &quot;LAA&quot;, &quot;LAA&quot;, &quot;LAA...
+## $ team_name       &amp;lt;chr&amp;gt; &quot;Los Angeles Angels of Anaheim&quot;, &quot;Los Angeles ...
+## $ team_color      &amp;lt;chr&amp;gt; &quot;#B71234&quot;, &quot;#B71234&quot;, &quot;#B71234&quot;, &quot;#B71234&quot;, &quot;#...
+## $ primary_color   &amp;lt;chr&amp;gt; &quot;#B71234&quot;, &quot;#B71234&quot;, &quot;#B71234&quot;, &quot;#B71234&quot;, &quot;#...
+## $ secondary_color &amp;lt;chr&amp;gt; &quot;#000000&quot;, &quot;#000000&quot;, &quot;#000000&quot;, &quot;#000000&quot;, &quot;#...
+## $ league          &amp;lt;chr&amp;gt; &quot;AL&quot;, &quot;AL&quot;, &quot;AL&quot;, &quot;AL&quot;, &quot;AL&quot;, &quot;AL&quot;, &quot;AL&quot;, &quot;AL&quot;...
+## $ division        &amp;lt;chr&amp;gt; &quot;AL West&quot;, &quot;AL West&quot;, &quot;AL West&quot;, &quot;AL West&quot;, &quot;A...&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;So far so good. Next let's calculate the payroll percentiles for each year. To do that, we can group the teams by year and then use the &lt;code class=&quot;highlighter-rouge&quot;&gt;dplyr&lt;/code&gt; package's &lt;a href=&quot;https://cran.r-project.org/web/packages/dplyr/vignettes/window-functions.html#ranking-functions&quot;&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;percent_rank&lt;/code&gt; function&lt;/a&gt;.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-r&quot; data-lang=&quot;r&quot;&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; 
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;group_by&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;year&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; 
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mutate&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rank&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;percent_rank&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;est_payroll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;To make the plots, we'll need a little bit of &lt;code class=&quot;highlighter-rouge&quot;&gt;ggplot&lt;/code&gt; magic. We will go one division at a time and create a list of plot objects, and then use the &lt;code class=&quot;highlighter-rouge&quot;&gt;cowplot&lt;/code&gt; package to plot them all at once.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-r&quot; data-lang=&quot;r&quot;&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;$&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;division&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;as.factor&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;$&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;division&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;divisions&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;levels&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;$&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;division&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+&lt;/span&gt;&lt;span class=&quot;c1&quot;&gt;# create the plots, one division at a time
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plots&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vector&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'list'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;seq_along&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;divisions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df.division&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;filter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;division&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;==&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;divisions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plots&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ggplot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df.division&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+           &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;aes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rank&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+               &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;wins_losses&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+               &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;color&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;team_color&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;geom_point&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;alpha&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0.75&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;geom_hline&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;yintercept&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0.5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;geom_vline&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xintercept&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0.5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stat_smooth&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;within&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;modern_team&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;kc&quot;&gt;NULL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;color&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'grey'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;method&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'lm'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;formula&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;~&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;poly&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;se&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;F&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stat_smooth&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;size&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;method&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'lm'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;formula&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;~&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;poly&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;se&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;F&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;scale_color_identity&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;scale_x_continuous&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;breaks&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0.5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                       &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;limits&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;-0.1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1.1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                       &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;labels&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'0%'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'50%'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'100%'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;scale_y_continuous&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;breaks&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;seq&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0.3&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0.7&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0.1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+                       &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;limits&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;c&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0.25&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0.75&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;facet_wrap&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;~&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;modern_team&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ncol&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;scales&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'free_x'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;theme_fivethirtyeight&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ggtitle&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;divisions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cowplot&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plot_grid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plotlist&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;plots&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ncol&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/Rfig/unnamed-chunk-5-1.svg&quot; alt=&quot;plot of chunk unnamed-chunk-5&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Compare FiveThirtyEight's results, using z-scores, to mine above. They're actually pretty similar. The plots for some of the teams got &quot;stretched&quot; horizontally a little, which I think makes it easier to determine trends.&lt;/p&gt;
+
+&lt;p&gt;Let's take this a little further. Notice the grey lines on each plot. Those are all the same - the average winning percentage at each payroll rank across the entire league. Teams would obviously prefer to be above that line, meaning that given their spending they won more games than one would expect. So it seems like if we took the distance from each point to the line and averaged them, we would have one number representing each team's &quot;bang for their buck&quot;. Once we have those, we can put the teams in order from wisest to least-wise spenders.&lt;/p&gt;
+
+&lt;p&gt;Let's do it!&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-r&quot; data-lang=&quot;r&quot;&gt;&lt;span class=&quot;n&quot;&gt;fit&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;lm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;wins_losses&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;~&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;poly&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rank&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; 
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mutate&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;expected_winpct&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;predict&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;fit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;newdata&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data.frame&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rank&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rank&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mutate&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;expected_w&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;expected_winpct&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;g&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; 
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mutate&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;diff_w&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;w&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;expected_w&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rankings&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;df&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;group_by&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;modern_team&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;summarize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avg_diff&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mean&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;diff_w&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;%&amp;gt;%&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;arrange&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;desc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avg_diff&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ggplot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rankings&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;aes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avg_diff&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;reorder&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;factor&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;modern_team&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;avg_diff&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;geom_segment&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;aes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;yend&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;modern_team&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;xend&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;geom_point&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;scale_x_continuous&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;breaks&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;-6&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;labs&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'Wins per year above expected, given payroll'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+       &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+       &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;title&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;theme&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;panel.grid.major.y&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;element_blank&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(),&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+        &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;panel.grid.minor.x&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;element_blank&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/Rfig/unnamed-chunk-6-1.svg&quot; alt=&quot;plot of chunk unnamed-chunk-6&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;We can see that the &lt;em&gt;Moneyball&lt;/em&gt; Oakland A's come out on top by a long shot. For a detailed year-by-year breakdown of each team from 1985 to 2015, &lt;a href=&quot;http://shiny.science.psu.edu/jre206/mlb_payroll/&quot;&gt;check out this cool app I made&lt;/a&gt;.&lt;/p&gt;</content><author><name>John Ensley</name></author><category term="baseball" /><summary type="html">In 2015, FiveThirtyEight published an article taking a look at one of the most common questions in baseball: does money buy success? Most major sports leagues in America have a &quot;salary cap,&quot; a limit on the amount of money a team can spend on player salaries each year. This is used to promote parity across all teams - otherwise, teams with deep pockets could afford to sign all the top tier players, giving them a competitive advantage year after year. Major League Baseball doesn't have a salary cap though. The Los Angeles Dodgers paid their players a total of $265 million in 2015, while the Cleveland Indians had a payroll of only $59 million. So in general, FiveThirtyEight asked, does more money mean more wins?</summary></entry><entry><title type="html">Replacing Slow R Code with CUDA</title><link href="http://localhost:4000/blog/2016/09/replacing-slow-r-code-with-cuda/" rel="alternate" type="text/html" title="Replacing Slow R Code with CUDA" /><published>2016-09-16T00:00:00-04:00</published><updated>2016-09-16T00:00:00-04:00</updated><id>http://localhost:4000/blog/2016/09/replacing-slow-r-code-with-cuda</id><content type="html" xml:base="http://localhost:4000/blog/2016/09/replacing-slow-r-code-with-cuda/">&lt;ul class=&quot;toc&quot; id=&quot;markdown-toc&quot;&gt;
+  &lt;li&gt;&lt;a href=&quot;#heading-the-problem&quot; id=&quot;markdown-toc-heading-the-problem&quot;&gt;The Problem&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#heading-naive-r-solution&quot; id=&quot;markdown-toc-heading-naive-r-solution&quot;&gt;Naive R Solution&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#heading-a-faster-r-solution&quot; id=&quot;markdown-toc-heading-a-faster-r-solution&quot;&gt;A Faster R Solution&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#heading-parallelization-with-cuda&quot; id=&quot;markdown-toc-heading-parallelization-with-cuda&quot;&gt;Parallelization with CUDA&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#heading-using-cuda-in-r&quot; id=&quot;markdown-toc-heading-using-cuda-in-r&quot;&gt;Using CUDA in R&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&quot;heading-the-problem&quot;&gt;The Problem&lt;/h1&gt;
+
+&lt;p&gt;Suppose we have a vector &lt;script type=&quot;math/tex&quot;&gt;\{x_i: i = 1, \dots, N\}&lt;/script&gt; and a collection of &lt;script type=&quot;math/tex&quot;&gt;\{s_j: j = 1, \dots, M\}&lt;/script&gt; random samples. For each &lt;script type=&quot;math/tex&quot;&gt;x_j&lt;/script&gt;, we want to calculate&lt;/p&gt;
+
+&lt;script type=&quot;math/tex; mode=display&quot;&gt;\frac{1}{M} \sum_{j=1}^M \cos(x_is_j).&lt;/script&gt;
+
+&lt;h1 id=&quot;heading-naive-r-solution&quot;&gt;Naive R Solution&lt;/h1&gt;
+
+&lt;p&gt;If you were new to R, you might do something like this:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-r&quot; data-lang=&quot;r&quot;&gt;&lt;span class=&quot;n&quot;&gt;func1&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;N&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;M&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;rep&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;N&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+   
+  &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;N&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;j&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;in&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;M&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+      &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;cos&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;j&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+    &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;M&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+  &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;return&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;y&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;If you’ve had any experience with R, you probably recoiled in horror at the sight of those nested for loops. For loops are notoriously slow in R, and the function above is doing &lt;script type=&quot;math/tex&quot;&gt;N \times M&lt;/script&gt; iterations with them. In fact, that’s probably the single worst way I could have written that function. If &lt;script type=&quot;math/tex&quot;&gt;N&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;M&lt;/script&gt; are small then it doesn’t matter much, but even if &lt;script type=&quot;math/tex&quot;&gt;N=M=1000&lt;/script&gt; (not big at all for practical applications), look what happens to the runtime:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Unit: seconds
+        expr      min       lq     mean  median      uq      max neval
+ func1(x, s) 1.608869 1.650864 1.718337 1.67365 1.77996 2.070576   100
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;It takes about 1.7 seconds on average to run. This is not ideal, especially in my research, where I need &lt;script type=&quot;math/tex&quot;&gt;N=80000&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;M=10000&lt;/script&gt; at least, and then I need it to run tens of thousands of times.&lt;/p&gt;
+
+&lt;h1 id=&quot;heading-a-faster-r-solution&quot;&gt;A Faster R Solution&lt;/h1&gt;
+
+&lt;p&gt;Let’s try a different approach. R has &lt;em&gt;vectorized&lt;/em&gt; functions, like &lt;code class=&quot;highlighter-rouge&quot;&gt;mean(x)&lt;/code&gt;, which are much, much faster than doing the equivalent calculation with a loop.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-r&quot; data-lang=&quot;r&quot;&gt;&lt;span class=&quot;n&quot;&gt;func2&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Vectorize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mean&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;cos&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;},&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vectorize.args&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'x'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;The calculation is taken care of in one line, &lt;code class=&quot;highlighter-rouge&quot;&gt;mean(cos(x*s))&lt;/code&gt;. The function is wrapped in &lt;code class=&quot;highlighter-rouge&quot;&gt;Vectorize&lt;/code&gt;, which tells R to apply the function to every element of &lt;code class=&quot;highlighter-rouge&quot;&gt;x&lt;/code&gt;, one at a time. If we run this one with &lt;script type=&quot;math/tex&quot;&gt;N=M=1000&lt;/script&gt;, we get&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Unit: milliseconds
+        expr      min       lq     mean   median       uq      max neval
+ func2(x, s) 27.50761 29.18643 31.93724 31.30861 33.46475 50.32115   100
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;That’s more like it. This runs in about 30 milliseconds, 50 times faster than the first function. Let’s bump up the sizes to &lt;script type=&quot;math/tex&quot;&gt;N=M=10000&lt;/script&gt; and see what happens.&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Unit: seconds
+        expr      min       lq     mean   median       uq      max neval
+ func2(x, s) 1.956879 2.039474 2.186676 2.151696 2.296424 3.011084   100
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;Hmm. The evaluation time has climbed up to more than 2 seconds. It doesn’t sound like much, but it really adds up when you’re calling this function thousands of times.&lt;/p&gt;
+
+&lt;h1 id=&quot;heading-parallelization-with-cuda&quot;&gt;Parallelization with CUDA&lt;/h1&gt;
+
+&lt;p&gt;We could rewrite the function in C, a lower-level language than R, but this only speeds things up by a factor of 2 or 3 at best. The main reason why this is so slow is that R (and ordinary C as well) is &lt;em&gt;single-threaded&lt;/em&gt;. This means that R can only do one thing at a time. It takes &lt;script type=&quot;math/tex&quot;&gt;x_1&lt;/script&gt;, calculates &lt;script type=&quot;math/tex&quot;&gt;\frac{1}{M}\sum^M_{j=1}\cos(x_1s_j)&lt;/script&gt;, then takes &lt;script type=&quot;math/tex&quot;&gt;x_2&lt;/script&gt;, calculates &lt;script type=&quot;math/tex&quot;&gt;\frac{1}{M}\sum^M_{j=1}\cos(x_2s_j)&lt;/script&gt;, and so on until it hits &lt;script type=&quot;math/tex&quot;&gt;x_N&lt;/script&gt;. But there’s no reason that things &lt;em&gt;must&lt;/em&gt; be evaluated so sequentially. It would save a lot of time if we could do that calculation for lots of different &lt;script type=&quot;math/tex&quot;&gt;x_i&lt;/script&gt;’s simultaneously. This is called &lt;em&gt;parallelization&lt;/em&gt;.&lt;/p&gt;
+
+&lt;p&gt;CUDA is an API developed by Nvidia for doing parallel computing on a GPU (graphics processing unit). GPUs are designed with parallel computing in mind. They are essentially made up of thousands of little processors that are organized in such a way that they can split up a task, execute part of it, and recombine the results. Here is a CUDA file that accomplishes our task. I named it &lt;code class=&quot;highlighter-rouge&quot;&gt;mc.cu&lt;/code&gt;.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-c&quot; data-lang=&quot;c&quot;&gt;&lt;span class=&quot;cp&quot;&gt;#include &amp;lt;stdio.h&amp;gt;
+#include &amp;lt;stdlib.h&amp;gt;
+#include &amp;lt;math.h&amp;gt;
+&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#include &quot;mc.h&quot;
+&lt;/span&gt;
+&lt;span class=&quot;cp&quot;&gt;#define TPB 1024
+&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;__device__&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;mcCalc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;S&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;total&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;S&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;total&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cos&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;d_samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]);&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;total&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;/&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;S&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;__global__&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;mcKernel&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_vec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_mat&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;N&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;S&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;blockIdx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;blockDim&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;threadIdx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;N&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;const&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;x&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;d_vec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;d_mat&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mcCalc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;d_samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;S&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+
+&lt;span class=&quot;c1&quot;&gt;// Helper function for using CUDA to add vectors in parallel.
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;extern&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;C&quot;&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;mcCuda&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;vec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mat&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;N&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;int&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;S&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_vec&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_samps&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_mat&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cudaError_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// Choose which GPU to run on, change this on a multi-GPU system.
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaSetDevice&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaSuccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;goto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// Allocate GPU buffers for three vectors (two input, one output).
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaMalloc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_vec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;N&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;sizeof&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaSuccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;cudaMalloc failed!&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;goto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaMalloc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;S&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;sizeof&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaSuccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;cudaMalloc failed!&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;goto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaMalloc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;void&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_mat&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;N&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;sizeof&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaSuccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;cudaMalloc failed!&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;goto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// Copy input vectors from host memory to GPU buffers.
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaMemcpy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_vec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;vec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;N&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;sizeof&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaMemcpyHostToDevice&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaSuccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;cudaMemcpy failed!&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;goto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaMemcpy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;S&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;sizeof&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaMemcpyHostToDevice&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaSuccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;cudaMemcpy failed!&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;goto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// Launch a kernel on the GPU with TPB threads per block.
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;mcKernel&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;N&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;TPB&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;/&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;TPB&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;TPB&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_vec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;d_samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;d_mat&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;N&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;S&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// Check for any errors launching the kernel
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaGetLastError&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaSuccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;mcKernel launch failed: %s&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaGetErrorString&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;goto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    
+    &lt;span class=&quot;c1&quot;&gt;// cudaDeviceSynchronize waits for the kernel to finish, and returns
+&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// any errors encountered during the launch.
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaDeviceSynchronize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaSuccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;cudaDeviceSynchronize returned error code %d after launching mcKernel!&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\n&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;goto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// Copy output vector from GPU buffer to host memory.
+&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaMemcpy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;mat&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;d_mat&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;N&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;sizeof&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;double&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaMemcpyDeviceToHost&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cudaStatus&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;cudaSuccess&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;n&quot;&gt;fprintf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;stderr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;cudaMemcpy failed!&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;goto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Error&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;Error&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cudaFree&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_vec&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cudaFree&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;cudaFree&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;d_mat&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+    &lt;span class=&quot;n&quot;&gt;cudaThreadExit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+    
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h1 id=&quot;heading-using-cuda-in-r&quot;&gt;Using CUDA in R&lt;/h1&gt;
+
+&lt;p&gt;To use this in R, we need to compile it as a shared library object. I do this in two steps, although I'm not sure if it's strictly necessary. First I compile the source code (the &lt;code class=&quot;highlighter-rouge&quot;&gt;mc.cu&lt;/code&gt; file above) into an object file called &lt;code class=&quot;highlighter-rouge&quot;&gt;mc.o&lt;/code&gt;.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;nvcc -g -G -Xcompiler &lt;span class=&quot;s2&quot;&gt;&quot;-Wall -Wextra -fpic&quot;&lt;/span&gt; -c src/mc.cu -o bin/mc.o&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Then, in order for R to use it, I turn it into a shared library file called &lt;code class=&quot;highlighter-rouge&quot;&gt;mc.so&lt;/code&gt;.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shell&quot; data-lang=&quot;shell&quot;&gt;nvcc -shared bin/mc.o -o mc.so -lm -lcuda -lcudart&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;I used a &lt;em&gt;makefile&lt;/em&gt; so I wouldn't have to remember what to do every time. The makefile looks like this:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-make&quot; data-lang=&quot;make&quot;&gt;&lt;span class=&quot;nl&quot;&gt;all&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;bin/mc.so&lt;/span&gt;
+
+&lt;span class=&quot;nl&quot;&gt;bin/mc.so&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;bin/mc.o&lt;/span&gt;
+    &lt;span class=&quot;err&quot;&gt;nvcc&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;-shared&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;bin/mc.o&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;-o&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;mc.so&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;-lm&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;-lcuda&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;-lcudart&lt;/span&gt;
+
+&lt;span class=&quot;nl&quot;&gt;bin/mc.o&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;src/mc.cu src/mc.h&lt;/span&gt;
+    &lt;span class=&quot;err&quot;&gt;nvcc&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;-g&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;-G&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;-Xcompiler&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;-Wall -Wextra -fpic&quot;&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;-c&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;src/mc.cu&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;-o&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;bin/mc.o&lt;/span&gt;
+
+&lt;span class=&quot;nl&quot;&gt;clean&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;:&lt;/span&gt;
+    &lt;span class=&quot;err&quot;&gt;rm&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;bin/*.o&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;At this point, here is the structure of my directory.&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;.
+├── bin
+│   └── mc.o
+├── makefile
+├── mc.so
+└── src
+    ├── mc.cu
+    └── mc.h
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;Now, in an R session, first we need to load that compiled library with &lt;code class=&quot;highlighter-rouge&quot;&gt;dyn.load()&lt;/code&gt;, and then we can write a wrapper function around the call to C.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-r&quot; data-lang=&quot;r&quot;&gt;&lt;span class=&quot;n&quot;&gt;dyn.load&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'mc.so'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;covar_mc_cuda&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;length&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tmp&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;.C&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'mcCuda'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;as.double&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;as.double&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;samps&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;res&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;double&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;),&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;n&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+  &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tmp&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;$&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;res&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Finally, we can use this function just like any other regular R function. When I tried this with &lt;script type=&quot;math/tex&quot;&gt;N=80200&lt;/script&gt; and &lt;script type=&quot;math/tex&quot;&gt;M=10000&lt;/script&gt;, it ran in about half a second. Pretty amazing if you ask me.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-r&quot; data-lang=&quot;r&quot;&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;runif&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;80200&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rnorm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;m&quot;&gt;10000&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;m&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;w&quot;&gt;
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;system.time&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;-&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;covar_mc_cuda&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;x&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;w&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;   user  system elapsed 
+  0.284   0.176   0.463
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;NOTE:&lt;/strong&gt; If you don’t have an Nvidia GPU in your computer, this will not work for you. I don’t have one in mine, so I needed to use &lt;a href=&quot;https://ics.psu.edu/advanced-cyberinfrastructure/&quot;&gt;Penn State’s ICS-ACI computing cluster&lt;/a&gt;, which was an adventure in itself. I have written &lt;a href=&quot;/post/2016-09-13-running-cuda-scripts-on-penn-state-s-ics-aci-cluster/&quot;&gt;another blog post&lt;/a&gt; about how to do that.&lt;/p&gt;</content><author><name>John Ensley</name></author><category term="R" /><category term="C" /><category term="GPU" /><category term="CUDA" /><summary type="html"></summary></entry><entry><title type="html">Running CUDA Scripts on Penn State's ICS-ACI Cluster</title><link href="http://localhost:4000/blog/2016/09/running-cuda-scripts-on-penn-state-aci-cluster/" rel="alternate" type="text/html" title="Running CUDA Scripts on Penn State's ICS-ACI Cluster" /><published>2016-09-13T00:00:00-04:00</published><updated>2016-09-13T00:00:00-04:00</updated><id>http://localhost:4000/blog/2016/09/running-cuda-scripts-on-penn-state-aci-cluster</id><content type="html" xml:base="http://localhost:4000/blog/2016/09/running-cuda-scripts-on-penn-state-aci-cluster/">&lt;p&gt;&lt;strong&gt;NOTE: This post is out of date! Penn State has switched to a new cluster system.&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;This is for my own reference, because if I go more than a few days without doing these steps I will probably forget them.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;If there are files on your local computer that you need to use on the cluster, transfer them over with this command.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;scp path/to/file/file1.c other/path/file2.c abc123@lionga.rcc.psu.edu:~/work
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;To copy an entire directory over:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;scp -r path/to/directory abc123@lionga.rcc.psu.edu:~/work
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;The Lion-GA cluster is the one with the Nvidia graphics cards. SSH into it with -Y so that you can launch a text editor with a GUI. I refuse to learn vim or emacs.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;ssh -Y abc123@lionga.rcc.psu.edu
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Once you’re in Lion-GA, to see all available GPU nodes, do &lt;code class=&quot;highlighter-rouge&quot;&gt;pbsnodes&lt;/code&gt;. There are 8 total as of right now. It seems like there are always a few that are offline. To see which are currently offline, do &lt;code class=&quot;highlighter-rouge&quot;&gt;pbsnodes -l&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;SSH into one of the nodes that are online.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;ssh lionga1
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;To see a list of the 8 graphics cards and any processes that are currently running on them, do &lt;code class=&quot;highlighter-rouge&quot;&gt;nvidia-smi&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;Once you are SSH’d into the GPU node, you can compile CUDA .cu files using &lt;code class=&quot;highlighter-rouge&quot;&gt;nvcc&lt;/code&gt; and run the output, just as you would on your local machine.&lt;/li&gt;
+  &lt;li&gt;To edit a file, logout of the GPU node and then run&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;gedit file.c
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;</content><author><name>John Ensley</name></author><category term="R" /><category term="C" /><category term="GPU" /><summary type="html">NOTE: This post is out of date! Penn State has switched to a new cluster system.</summary></entry><entry><title type="html">Speeding Up R Code with Parallelization</title><link href="http://localhost:4000/blog/2016/09/speeding-up-r-code-with-parallelization/" rel="alternate" type="text/html" title="Speeding Up R Code with Parallelization" /><published>2016-09-08T00:00:00-04:00</published><updated>2016-09-08T00:00:00-04:00</updated><id>http://localhost:4000/blog/2016/09/speeding-up-r-code-with-parallelization</id><content type="html" xml:base="http://localhost:4000/blog/2016/09/speeding-up-r-code-with-parallelization/">&lt;p&gt;I’ve literally hit a speed bump in my research. I wrote a Markov chain Monte Carlo algorithm in R to estimate a parameter, and it appears to converge pretty well. The problem is that it takes a painfully long time to run. Each iteration takes around 30 seconds, and MCMC algorithms typically take at least 10,000 iterations to converge, so I’m looking at tying up my computer for three or four days at a time anytime I need to run something. Even using Penn State’s computing cluster doesn’t speed things up much, and as an added bonus that will terminate my job after 72 hours. So I desperately need to find a way to get my code running faster.&lt;/p&gt;
+
+&lt;p&gt;My advisor and I think that the best option is to parallelize the code as much as possible and run it on a GPU. When code is run “the normal way”, on the CPU, it’s executed in sequence: one instruction runs until it finishes, then the next instruction, etc. The CPU is only doing one thing at a time. But a GPU is essentially made up of thousands of little tiny processors that are pretty weak on their own but can all communicate with each other. They are able to execute instructions at the same time, independently of each other, and then send their outputs to the CPU to be combined.&lt;/p&gt;
+
+&lt;p&gt;Obviously, code executed in parallel should finish way sooner than code executed in sequence. There are some downsides though.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Not all algorithms are parallelizable. MCMC algorithms are actually a good example of something that isn’t easily executed in parallel, because the calculations at each iteration depend on the result of the previous one. If all 10,000 iterations were assigned to different processors and executed at the same time, it wouldn’t work, since each one wouldn’t know what to use as inputs. In my case, it’s not the MCMC itself that I need to parallelize, it’s a subroutine that occurs inside each MCMC step.&lt;/li&gt;
+  &lt;li&gt;After parallelizing, sometimes we won’t see a speedup as dramatic as we expected, or it may actually be slower that code executed in sequence. This is because there is some overhead involved in running code on a GPU. The CPU has to figure out how to break up the code, then break it up, then distribute it to the GPU. Then, once the code has executed on the GPU, the results have to be read from the GPU, sent to the CPU, and recombined. The amount of time it takes a computer to do all of this is not insignificant. If the code doesn’t take all that long to run sequentially (say, a few minutes), then the advantage gained by parallelizing might be cancelled out by the extra time it takes for the CPU to sort everything out.&lt;/li&gt;
+  &lt;li&gt;It’s a huge pain to write code that can run on a GPU. Nvidia has developed software called CUDA, which is basically an extension of C that is designed to communicate with Nvidia brand graphics cards. Just translating R code to C is daunting enough for a statistician like myself who is relatively unfamiliar with C, and CUDA just adds another tool to learn on top of that. But I am slowly starting to get comfortable with it.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;I plan on writing several more blog posts on this topic, mostly for my own reference, as I work on this problem. They will have more details on the specifics of moving to parallelization.&lt;/p&gt;</content><author><name>John Ensley</name></author><category term="R" /><category term="C" /><category term="GPU" /><summary type="html">I’ve literally hit a speed bump in my research. I wrote a Markov chain Monte Carlo algorithm in R to estimate a parameter, and it appears to converge pretty well. The problem is that it takes a painfully long time to run. Each iteration takes around 30 seconds, and MCMC algorithms typically take at least 10,000 iterations to converge, so I’m looking at tying up my computer for three or four days at a time anytime I need to run something. Even using Penn State’s computing cluster doesn’t speed things up much, and as an added bonus that will terminate my job after 72 hours. So I desperately need to find a way to get my code running faster.</summary></entry></feed>

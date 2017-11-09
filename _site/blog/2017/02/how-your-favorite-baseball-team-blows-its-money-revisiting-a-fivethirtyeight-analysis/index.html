@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!-->
+<html class="no-js" lang="en">
+<!--<![endif]-->
+
+<head>
+    <meta charset="utf-8">
+<!--[if IE]><meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'><![endif]-->
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.3.0 -->
+<title>&quot;How Your Favorite Baseball Team Blows Its Money&quot;: Revisiting a FiveThirtyEight Analysis | John Ensley</title>
+<meta property="og:title" content="&quot;How Your Favorite Baseball Team Blows Its Money&quot;: Revisiting a FiveThirtyEight Analysis" />
+<meta name="author" content="John Ensley" />
+<meta property="og:locale" content="en" />
+<meta name="description" content="In 2015, FiveThirtyEight published an article taking a look at one of the most common questions in baseball: does money buy success? Most major sports leagues in America have a &quot;salary cap,&quot; a limit on the amount of money a team can spend on player salaries each year. This is used to promote parity across all teams - otherwise, teams with deep pockets could afford to sign all the top tier players, giving them a competitive advantage year after year. Major League Baseball doesn&#39;t have a salary cap though. The Los Angeles Dodgers paid their players a total of $265 million in 2015, while the Cleveland Indians had a payroll of only $59 million. So in general, FiveThirtyEight asked, does more money mean more wins?" />
+<meta property="og:description" content="In 2015, FiveThirtyEight published an article taking a look at one of the most common questions in baseball: does money buy success? Most major sports leagues in America have a &quot;salary cap,&quot; a limit on the amount of money a team can spend on player salaries each year. This is used to promote parity across all teams - otherwise, teams with deep pockets could afford to sign all the top tier players, giving them a competitive advantage year after year. Major League Baseball doesn&#39;t have a salary cap though. The Los Angeles Dodgers paid their players a total of $265 million in 2015, while the Cleveland Indians had a payroll of only $59 million. So in general, FiveThirtyEight asked, does more money mean more wins?" />
+<link rel="canonical" href="http://localhost:4000/blog/2017/02/how-your-favorite-baseball-team-blows-its-money-revisiting-a-fivethirtyeight-analysis/" />
+<meta property="og:url" content="http://localhost:4000/blog/2017/02/how-your-favorite-baseball-team-blows-its-money-revisiting-a-fivethirtyeight-analysis/" />
+<meta property="og:site_name" content="John Ensley" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2017-02-22T00:00:00-05:00" />
+<script type="application/ld+json">
+{"name":null,"description":"In 2015, FiveThirtyEight published an article taking a look at one of the most common questions in baseball: does money buy success? Most major sports leagues in America have a &quot;salary cap,&quot; a limit on the amount of money a team can spend on player salaries each year. This is used to promote parity across all teams - otherwise, teams with deep pockets could afford to sign all the top tier players, giving them a competitive advantage year after year. Major League Baseball doesn&#39;t have a salary cap though. The Los Angeles Dodgers paid their players a total of $265 million in 2015, while the Cleveland Indians had a payroll of only $59 million. So in general, FiveThirtyEight asked, does more money mean more wins?","author":{"@type":"Person","name":"John Ensley"},"@type":"BlogPosting","url":"http://localhost:4000/blog/2017/02/how-your-favorite-baseball-team-blows-its-money-revisiting-a-fivethirtyeight-analysis/","publisher":null,"image":null,"headline":"&quot;How Your Favorite Baseball Team Blows Its Money&quot;: Revisiting a FiveThirtyEight Analysis","dateModified":"2017-02-22T00:00:00-05:00","datePublished":"2017-02-22T00:00:00-05:00","sameAs":null,"mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/blog/2017/02/how-your-favorite-baseball-team-blows-its-money-revisiting-a-fivethirtyeight-analysis/"},"@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+<meta name="keywords" content="baseball" />
+
+
+
+
+
+<link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="John Ensley" />
+    <link href='/assets/stylesheets/blog.css' rel="stylesheet" type="text/css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
+<script>window.Modernizr || document.write('<script src="/assets/javascripts/modernizr-2.8.3.min.js"><\/script>')</script>
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script>
+    window.jQuery || document.write('<script src="/assets/javascripts/jquery-3.2.1.min.js"><\/script>')
+</script>
+
+<!-- <script src="//cdnjs.cloudflare.com/ajax/libs/pace/1.0.2/pace.min.js"></script>
+<script>
+    window.Pace || document.write('<script src="/assets/javascripts/pace.min.js"><\/script>')
+</script> -->
+
+<script>
+  (function(d) {
+    var config = {
+      kitId: "apq8pzh",
+      scriptTimeout: 3000,
+      async: true
+    },
+    h=d.documentElement,t=setTimeout(function(){h.className=h.className.replace(/\bwf-loading\b/g,"")+" wf-inactive";},config.scriptTimeout),tk=d.createElement("script"),f=false,s=d.getElementsByTagName("script")[0],a;h.className+=" wf-loading";tk.src='https://use.typekit.net/'+config.kitId+'.js';tk.async=true;tk.onload=tk.onreadystatechange=function(){a=this.readyState;if(f||a&&a!="complete"&&a!="loaded")return;f=true;clearTimeout(t);try{Typekit.load(config)}catch(e){}};s.parentNode.insertBefore(tk,s)
+  })(document);
+</script>
+
+
+    <script async src="https://www.google-analytics.com/analytics.js"></script>
+<script async src="/assets/javascripts/autotrack.js"></script>
+<script>
+
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-46465113-2', 'auto');
+
+ga('require', 'cleanUrlTracker', {
+  trailingSlash: 'remove'
+});
+ga('require', 'maxScrollTracker');
+ga('require', 'mediaQueryTracker', {
+  definitions: [
+    {
+      name: 'Breakpoint',
+      dimensionIndex: 1,
+      items: [
+        {name: 'sm', media: 'all'},
+        {name: 'md', media: '(min-width: 768px)'},
+        {name: 'lg', media: '(min-width: 1200px)'}
+      ]
+    },
+    {
+      name: 'Pixel Density',
+      dimensionIndex: 2,
+      items: [
+        {name: '1x',   media: 'all'},
+        {name: '1.5x', media: '(min-resolution: 144dpi)'},
+        {name: '2x',   media: '(min-resolution: 192dpi)'}
+      ]
+    },
+    {
+      name: 'Orientation',
+      dimensionIndex: 3,
+      items: [
+        {name: 'landscape', media: '(orientation: landscape)'},
+        {name: 'portrait',  media: '(orientation: portrait)'}
+      ]
+    }
+  ]
+});
+ga('require', 'outboundLinkTracker', {
+  events: ['click', 'auxclick', 'contextmenu']
+});
+ga('require', 'pageVisibilityTracker', {
+  sendInitialPageview: true,
+});
+
+ga('send', 'pageview');
+
+function sendGaEvent(category, action, element, value) {
+    var title = element.getAttribute('title');
+    var textConent = element.textContent ? element.textContent.trim() : undefined;
+    var label = (title && title.length !== 0) ? title : textConent;
+    ga('send', {
+        hitType: 'event',
+        eventCategory: category,
+        eventAction: action.trim(),
+        eventLabel: label,
+        eventValue: value
+    });
+}
+</script>
+
+</head>
+
+<body>
+
+    <div id="page" class="hentry">
+        <header class="the-header">
+    <div class="unit-head">
+        <div class="unit-inner unit-head-inner">
+            <nav class="nav-global">
+                <ul>
+                    <li class="logo nav-link">
+                        <button class="btn-menu" title="Menu"></button>
+                        <a href="/">John Ensley</a>
+                    </li>
+                    <li class="nav-link"><a title="Blog" href="/blog/">Blog</a></li>
+                    <li class="nav-link"><a title="Projects" href="/projects/">Projects</a></li>
+                    <li class="nav-link"><a title="Photography" href="/photography/">Photography</a></li>
+                    <li class="nav-link"><a title="About" href="/about/">About</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</header>
+
+
+        <div class="body animated fadeInDown" role="main">
+            <div class="unit-body">
+                <div class="unit-inner unit-body-inner">
+                    <div class="entry-content">
+                        <article class="unit-article layout-post">
+    <div class="unit-inner unit-article-inner">
+        <div itemscope itemtype="http://schema.org/Article" class="content">
+            <header>
+                <div class="unit-head">
+                    <div class="unit-inner unit-head-inner">
+                        <h1 class="entry-title" itemprop="name">"How Your Favorite Baseball Team Blows Its Money": Revisiting a FiveThirtyEight Analysis</h1>
+                    </div>
+                </div>
+            </header>
+            <div class="bd article-content">
+                <div class="entry-content">
+                    <div class="meta">
+                        <p class="date-publish">
+                            Published:
+                            <time itemprop="datePublished" class="date-pub updated"
+                                title="2017-02-22T00:00:00-05:00" datetime="2017-02-22T00:00:00-05:00">February 22, 2017 </time>
+                            by
+                            <a class="author" href="/" rel="author" title="Show Author">
+                                <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+                                    <span itemprop="name">John Ensley</span>
+                                </span>
+                            </a>
+                            
+                            
+                        </p>
+                        <ul class="list-category list-linear">
+                            <li class="list-head"><a title="Categories" href="/blog/categories/">Categories</a>: </li>
+                             
+     
+        <li>
+            <a href="/blog/categories/#Sports" title="Sports">
+            Sports <span>2</span></a>
+        </li>
+    
+
+
+
+                        </ul>
+                        <ul class="list-tag list-linear">
+                            <li class="list-head"><a title="Tags" href="/blog/tags/">Tags</a>: </li>
+                             
+    
+        
+        <li>
+            <a href="/blog/tags/#baseball" title="baseball">baseball <span>1</span></a>
+        </li>
+    
+
+
+
+
+                        </ul>
+                    </div>
+                    <div itemprop="articleBody" class="article-body">
+                        <p>In 2015, FiveThirtyEight <a href="http://fivethirtyeight.com/features/dont-be-fooled-by-baseballs-small-budget-success-stories/">published an article</a> taking a look at one of the most common questions in baseball: does money buy success? Most major sports leagues in America have a "salary cap," a limit on the amount of money a team can spend on player salaries each year. This is used to promote parity across all teams - otherwise, teams with deep pockets could afford to sign all the top tier players, giving them a competitive advantage year after year. Major League Baseball doesn't have a salary cap though. The Los Angeles Dodgers paid their players a total of $265 million in 2015, while the Cleveland Indians had a payroll of only $59 million. So in general, FiveThirtyEight asked, does more money mean more wins?</p>
+
+<p>It would appeal to our affinity for underdogs if the answer was no, but unfortunately <a href="http://fivethirtyeight.com/features/how-your-favorite-baseball-team-blows-its-money/">that is not the case</a>. The gray curve on each of those graphs is the league-wide trend in winning percentage as a function of salary. Basically, the upward slope indicates that teams with higher payrolls tend to win more games.</p>
+
+<p>It's an interesting read. You'll notice that their x-axis is "standardized salary," ranging from about -2 to +2. The authors explain that "Salary and win percentage were standardized within each season to account for the league’s financial growth and changes in league competitiveness." They calculated a z-score for every team's payroll for each year. This means that for each team, they found the mean payroll for that year, subtracted it from the team's payroll, and divided by the year's standard deviation. The result is a number indicating how many standard deviations above or below the mean that team's payroll was. I wanted to look at a slightly different method for standardizing: percentiles. A percentile is a value below which a certain percentage of values lie. For example, the Dodgers had the highest payroll in the league in 2015, putting them in the 100th percentile; every other team's payroll was below theirs. The Pirates, on the other hand, had the 20th highest payroll of the 30 teams. They were in the 34th percentile.</p>
+
+<p>I found some data put together by <a href="http://blog.yhat.com/posts/replicating-five-thirty-eight-in-r.html">another blogger</a> for a similar post. This data includes team-by-team payrolls and wins and losses, as well as a table mapping old teams (like the Montreal Expos) to the present-day versions (the Washington Nationals). There is also a table of official team colors that we'll use to make the final results look nice.</p>
+
+<figure class="highlight"><pre><code class="language-r" data-lang="r"><span class="n">df</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'mlb-standings-and-payroll.csv'</span><span class="p">)</span><span class="w">
+</span><span class="n">team_lookups</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'team-lookups.csv'</span><span class="p">)</span><span class="w">
+</span><span class="n">team_colors</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'team-colors.csv'</span><span class="p">)</span><span class="w">
+</span><span class="n">glimpse</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-text" data-lang="text">## Observations: 1,592
+## Variables: 40
+## $ tm                 &lt;chr&gt; "ANA", "ANA", "ANA", "ANA", "ANA", "ANA", "...
+## $ year               &lt;int&gt; 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2...
+## $ attendance         &lt;int&gt; 1767330, 2519280, 2253123, 2066982, 2000919...
+## $ attend_per_game    &lt;int&gt; 21553, 31102, 27816, 25518, 24703, 28464, 3...
+## $ batage             &lt;dbl&gt; 29.7, 28.7, 28.8, 27.7, 28.0, 28.5, 29.1, 2...
+## $ page               &lt;dbl&gt; 28.3, 29.8, 31.5, 28.9, 28.9, 30.2, 29.0, 2...
+## $ bpf                &lt;int&gt; 102, 102, 99, 102, 101, 100, 98, 97, 100, 1...
+## $ ppf                &lt;int&gt; 102, 102, 99, 102, 100, 99, 97, 96, 99, 100...
+## $ n_hof              &lt;int&gt; 2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2...
+## $ n_aallstars        &lt;int&gt; 1, 2, 1, 2, 2, 1, 3, 2, 1, 4, 2, 3, 6, 1, 1...
+## $ n_a_ta_s           &lt;int&gt; 15, 16, 11, 12, 7, 11, 12, 15, 7, 14, 13, 1...
+## $ est_payroll        &lt;int&gt; 31135472, 41791000, 55633166, 52664167, 477...
+## $ time               &lt;time&gt; 03:06:00, 02:58:00, 02:52:00, 03:05:00, 02...
+## $ managers           &lt;chr&gt; "Collins", "Collins", "Collins and Maddon",...
+## $ X15                &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
+## $ X16                &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
+## $ X17                &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
+## $ rk                 &lt;int&gt; 11, 12, 23, 15, 20, 4, 19, 6, 28, 2, 13, 6,...
+## $ lg                 &lt;chr&gt; "AL", "AL", "AL", "AL", "AL", "AL", "AL", "...
+## $ g                  &lt;int&gt; 162, 162, 162, 162, 162, 162, 162, 162, 162...
+## $ w                  &lt;int&gt; 84, 85, 70, 82, 75, 99, 77, 92, 65, 100, 85...
+## $ l                  &lt;int&gt; 78, 77, 92, 80, 87, 63, 85, 70, 97, 62, 77,...
+## $ wins_losses        &lt;dbl&gt; 0.518, 0.525, 0.432, 0.506, 0.463, 0.611, 0...
+## $ r                  &lt;dbl&gt; 5.1, 4.9, 4.4, 5.3, 4.3, 5.3, 4.5, 5.2, 4.1...
+## $ ra                 &lt;dbl&gt; 4.9, 4.8, 5.1, 5.4, 4.5, 4.0, 4.6, 4.5, 5.0...
+## $ rdiff              &lt;dbl&gt; 0.2, 0.0, -0.7, 0.0, -0.2, 1.3, 0.0, 0.6, -...
+## $ sos                &lt;dbl&gt; 0.0, 0.0, -0.2, 0.1, 0.2, 0.1, 0.1, 0.1, 0....
+## $ srs                &lt;dbl&gt; 0.2, 0.0, -0.9, 0.1, 0.0, 1.3, 0.0, 0.7, -0...
+## $ pythwl             &lt;chr&gt; "84-78", "81-81", "70-92", "81-81", "77-85"...
+## $ luck               &lt;int&gt; 0, 4, 0, 1, -2, -2, -3, 1, -1, -2, 0, -3, 3...
+## $ home               &lt;chr&gt; "46-36", "42-39", "37-44", "46-35", "39-42"...
+## $ road               &lt;chr&gt; "38-42", "43-38", "33-48", "36-45", "36-45"...
+## $ exinn              &lt;chr&gt; "5-8", "6-6", "4-8", "9-7", "7-8", "10-5", ...
+## $ `1run`             &lt;chr&gt; "27-25", "24-19", "23-25", "32-23", "24-24"...
+## $ vrhp               &lt;chr&gt; "66-55", "62-59", "51-73", "61-55", "53-60"...
+## $ vlhp               &lt;chr&gt; "18-23", "23-18", "19-19", "21-25", "22-27"...
+## $ vs_teams_above_500 &lt;chr&gt; "23-34", "30-36", "27-45", "42-49", "37-55"...
+## $ vs_teams_below_500 &lt;chr&gt; "61-44", "55-41", "43-47", "40-31", "38-32"...
+## $ inter              &lt;chr&gt; "4-12", "10-6", "6-12", "12-6", "10-8", "11...
+## $ last_year          &lt;int&gt; 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2...</code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-r" data-lang="r"><span class="n">glimpse</span><span class="p">(</span><span class="n">team_lookups</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-text" data-lang="text">## Observations: 45
+## Variables: 2
+## $ historic_team &lt;chr&gt; "ANA", "ARI", "ATL", "BAL", "BOS", "BRO", "BSN",...
+## $ modern_team   &lt;chr&gt; "LAA", "ARI", "ATL", "BAL", "BOS", "LAD", "ATL",...</code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-r" data-lang="r"><span class="n">glimpse</span><span class="p">(</span><span class="n">team_colors</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-text" data-lang="text">## Observations: 30
+## Variables: 7
+## $ team_name       &lt;chr&gt; "Arizona Diamondbacks", "Atlanta Braves", "Bal...
+## $ tm              &lt;chr&gt; "ARI", "ATL", "BAL", "BOS", "CHC", "CHW", "CIN...
+## $ team_color      &lt;chr&gt; "#A71930", "#B71234", "#ed4c09", "#C60C30", "#...
+## $ primary_color   &lt;chr&gt; "#A71930", "#002F5F", "#ed4c09", "#C60C30", "#...
+## $ secondary_color &lt;chr&gt; "#000000", "#B71234", "#000000", "#002244", "#...
+## $ league          &lt;chr&gt; "NL", "NL", "AL", "AL", "NL", "AL", "NL", "AL"...
+## $ division        &lt;chr&gt; "NL West", "NL East", "AL East", "AL East", "N...</code></pre></figure>
+
+<p>First of all, the data only has reliable payroll information dating back to 1985. Let's filter out all teams from before 1985, drop columns we won't be using for this analysis, and join the table to the other two.</p>
+
+<figure class="highlight"><pre><code class="language-r" data-lang="r"><span class="n">df</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">df</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> 
+  </span><span class="n">filter</span><span class="p">(</span><span class="n">year</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="m">1985</span><span class="p">)</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> 
+  </span><span class="n">select</span><span class="p">(</span><span class="n">tm</span><span class="p">,</span><span class="w"> </span><span class="n">year</span><span class="p">,</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="n">wins_losses</span><span class="p">,</span><span class="w"> </span><span class="n">est_payroll</span><span class="p">)</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> 
+  </span><span class="n">left_join</span><span class="p">(</span><span class="n">team_lookups</span><span class="p">,</span><span class="w"> </span><span class="n">by</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">c</span><span class="p">(</span><span class="s1">'tm'</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'historic_team'</span><span class="p">))</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> 
+  </span><span class="n">left_join</span><span class="p">(</span><span class="n">team_colors</span><span class="p">,</span><span class="w"> </span><span class="n">by</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">c</span><span class="p">(</span><span class="s1">'modern_team'</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'tm'</span><span class="p">))</span><span class="w">
+</span><span class="n">glimpse</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></code></pre></figure>
+
+<figure class="highlight"><pre><code class="language-text" data-lang="text">## Observations: 858
+## Variables: 13
+## $ tm              &lt;chr&gt; "ANA", "ANA", "ANA", "ANA", "ANA", "ANA", "ANA...
+## $ year            &lt;int&gt; 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004...
+## $ w               &lt;int&gt; 84, 85, 70, 82, 75, 99, 77, 92, 65, 100, 85, 9...
+## $ g               &lt;int&gt; 162, 162, 162, 162, 162, 162, 162, 162, 162, 1...
+## $ wins_losses     &lt;dbl&gt; 0.518, 0.525, 0.432, 0.506, 0.463, 0.611, 0.47...
+## $ est_payroll     &lt;int&gt; 31135472, 41791000, 55633166, 52664167, 477351...
+## $ modern_team     &lt;chr&gt; "LAA", "LAA", "LAA", "LAA", "LAA", "LAA", "LAA...
+## $ team_name       &lt;chr&gt; "Los Angeles Angels of Anaheim", "Los Angeles ...
+## $ team_color      &lt;chr&gt; "#B71234", "#B71234", "#B71234", "#B71234", "#...
+## $ primary_color   &lt;chr&gt; "#B71234", "#B71234", "#B71234", "#B71234", "#...
+## $ secondary_color &lt;chr&gt; "#000000", "#000000", "#000000", "#000000", "#...
+## $ league          &lt;chr&gt; "AL", "AL", "AL", "AL", "AL", "AL", "AL", "AL"...
+## $ division        &lt;chr&gt; "AL West", "AL West", "AL West", "AL West", "A...</code></pre></figure>
+
+<p>So far so good. Next let's calculate the payroll percentiles for each year. To do that, we can group the teams by year and then use the <code class="highlighter-rouge">dplyr</code> package's <a href="https://cran.r-project.org/web/packages/dplyr/vignettes/window-functions.html#ranking-functions"><code class="highlighter-rouge">percent_rank</code> function</a>.</p>
+
+<figure class="highlight"><pre><code class="language-r" data-lang="r"><span class="n">df</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">df</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> 
+  </span><span class="n">group_by</span><span class="p">(</span><span class="n">year</span><span class="p">)</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> 
+  </span><span class="n">mutate</span><span class="p">(</span><span class="n">rank</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">percent_rank</span><span class="p">(</span><span class="n">est_payroll</span><span class="p">))</span></code></pre></figure>
+
+<p>To make the plots, we'll need a little bit of <code class="highlighter-rouge">ggplot</code> magic. We will go one division at a time and create a list of plot objects, and then use the <code class="highlighter-rouge">cowplot</code> package to plot them all at once.</p>
+
+<figure class="highlight"><pre><code class="language-r" data-lang="r"><span class="n">df</span><span class="o">$</span><span class="n">division</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">as.factor</span><span class="p">(</span><span class="n">df</span><span class="o">$</span><span class="n">division</span><span class="p">)</span><span class="w">
+</span><span class="n">divisions</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">levels</span><span class="p">(</span><span class="n">df</span><span class="o">$</span><span class="n">division</span><span class="p">)</span><span class="w">
+
+</span><span class="c1"># create the plots, one division at a time
+</span><span class="n">plots</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">vector</span><span class="p">(</span><span class="s1">'list'</span><span class="p">,</span><span class="w"> </span><span class="m">6</span><span class="p">)</span><span class="w">
+</span><span class="k">for</span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="nf">seq_along</span><span class="p">(</span><span class="n">divisions</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">
+  </span><span class="n">df.division</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">filter</span><span class="p">(</span><span class="n">df</span><span class="p">,</span><span class="w"> </span><span class="n">division</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">divisions</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="w">
+  </span><span class="n">plots</span><span class="p">[[</span><span class="n">i</span><span class="p">]]</span><span class="w"> </span><span class="o">&lt;-</span><span class="w">
+    </span><span class="n">ggplot</span><span class="p">(</span><span class="n">df.division</span><span class="p">,</span><span class="w">
+           </span><span class="n">aes</span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rank</span><span class="p">,</span><span class="w">
+               </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wins_losses</span><span class="p">,</span><span class="w">
+               </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">team_color</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w">
+    </span><span class="n">geom_point</span><span class="p">(</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.75</span><span class="p">,</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">4</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w">
+    </span><span class="n">geom_hline</span><span class="p">(</span><span class="n">yintercept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w">
+    </span><span class="n">geom_vline</span><span class="p">(</span><span class="n">xintercept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0.5</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w">
+    </span><span class="n">stat_smooth</span><span class="p">(</span><span class="n">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">within</span><span class="p">(</span><span class="n">df</span><span class="p">,</span><span class="w"> </span><span class="n">modern_team</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="kc">NULL</span><span class="p">),</span><span class="w">
+                </span><span class="n">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'grey'</span><span class="p">,</span><span class="w">
+                </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1</span><span class="p">,</span><span class="w">
+                </span><span class="n">method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'lm'</span><span class="p">,</span><span class="w">
+                </span><span class="n">formula</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">~</span><span class="w"> </span><span class="n">poly</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="m">2</span><span class="p">),</span><span class="w">
+                </span><span class="n">se</span><span class="o">=</span><span class="nb">F</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w">
+    </span><span class="n">stat_smooth</span><span class="p">(</span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">2</span><span class="p">,</span><span class="w">
+                </span><span class="n">method</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'lm'</span><span class="p">,</span><span class="w">
+                </span><span class="n">formula</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">~</span><span class="w"> </span><span class="n">poly</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="m">2</span><span class="p">),</span><span class="w">
+                </span><span class="n">se</span><span class="o">=</span><span class="nb">F</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w">
+    </span><span class="n">scale_color_identity</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w">
+    </span><span class="n">scale_x_continuous</span><span class="p">(</span><span class="n">breaks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">c</span><span class="p">(</span><span class="m">0</span><span class="p">,</span><span class="w"> </span><span class="m">0.5</span><span class="p">,</span><span class="w"> </span><span class="m">1</span><span class="p">),</span><span class="w">
+                       </span><span class="n">limits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">c</span><span class="p">(</span><span class="m">-0.1</span><span class="p">,</span><span class="m">1.1</span><span class="p">),</span><span class="w">
+                       </span><span class="n">labels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">c</span><span class="p">(</span><span class="s1">'0%'</span><span class="p">,</span><span class="s1">'50%'</span><span class="p">,</span><span class="s1">'100%'</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w">
+    </span><span class="n">scale_y_continuous</span><span class="p">(</span><span class="n">breaks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">seq</span><span class="p">(</span><span class="m">0.3</span><span class="p">,</span><span class="w"> </span><span class="m">0.7</span><span class="p">,</span><span class="w"> </span><span class="m">0.1</span><span class="p">),</span><span class="w">
+                       </span><span class="n">limits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">c</span><span class="p">(</span><span class="m">0.25</span><span class="p">,</span><span class="w"> </span><span class="m">0.75</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w">
+    </span><span class="n">facet_wrap</span><span class="p">(</span><span class="o">~</span><span class="n">modern_team</span><span class="p">,</span><span class="w"> </span><span class="n">ncol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span><span class="p">,</span><span class="w"> </span><span class="n">scales</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'free_x'</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w">
+    </span><span class="n">theme_fivethirtyeight</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w">
+    </span><span class="n">ggtitle</span><span class="p">(</span><span class="n">divisions</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="w">
+</span><span class="p">}</span><span class="w">
+
+</span><span class="n">cowplot</span><span class="o">::</span><span class="n">plot_grid</span><span class="p">(</span><span class="n">plotlist</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">plots</span><span class="p">,</span><span class="w"> </span><span class="n">ncol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">1</span><span class="p">)</span></code></pre></figure>
+
+<p><img src="/assets/images/Rfig/unnamed-chunk-5-1.svg" alt="plot of chunk unnamed-chunk-5" /></p>
+
+<p>Compare FiveThirtyEight's results, using z-scores, to mine above. They're actually pretty similar. The plots for some of the teams got "stretched" horizontally a little, which I think makes it easier to determine trends.</p>
+
+<p>Let's take this a little further. Notice the grey lines on each plot. Those are all the same - the average winning percentage at each payroll rank across the entire league. Teams would obviously prefer to be above that line, meaning that given their spending they won more games than one would expect. So it seems like if we took the distance from each point to the line and averaged them, we would have one number representing each team's "bang for their buck". Once we have those, we can put the teams in order from wisest to least-wise spenders.</p>
+
+<p>Let's do it!</p>
+
+<figure class="highlight"><pre><code class="language-r" data-lang="r"><span class="n">fit</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">lm</span><span class="p">(</span><span class="n">wins_losses</span><span class="w"> </span><span class="o">~</span><span class="w"> </span><span class="n">poly</span><span class="p">(</span><span class="n">rank</span><span class="p">,</span><span class="w"> </span><span class="m">2</span><span class="p">),</span><span class="w"> </span><span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">)</span><span class="w">
+
+</span><span class="n">df</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">df</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> 
+  </span><span class="n">mutate</span><span class="p">(</span><span class="n">expected_winpct</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">predict</span><span class="p">(</span><span class="n">fit</span><span class="p">,</span><span class="w"> </span><span class="n">newdata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">data.frame</span><span class="p">(</span><span class="n">rank</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rank</span><span class="p">)))</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w">
+  </span><span class="n">mutate</span><span class="p">(</span><span class="n">expected_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">expected_winpct</span><span class="o">*</span><span class="n">g</span><span class="p">)</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w"> 
+  </span><span class="n">mutate</span><span class="p">(</span><span class="n">diff_w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">expected_w</span><span class="p">)</span><span class="w">
+
+</span><span class="n">rankings</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">df</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w">
+  </span><span class="n">group_by</span><span class="p">(</span><span class="n">modern_team</span><span class="p">)</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w">
+  </span><span class="n">summarize</span><span class="p">(</span><span class="n">avg_diff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mean</span><span class="p">(</span><span class="n">diff_w</span><span class="p">))</span><span class="w"> </span><span class="o">%&gt;%</span><span class="w">
+  </span><span class="n">arrange</span><span class="p">(</span><span class="n">desc</span><span class="p">(</span><span class="n">avg_diff</span><span class="p">))</span><span class="w">
+
+</span><span class="n">ggplot</span><span class="p">(</span><span class="n">rankings</span><span class="p">,</span><span class="w"> </span><span class="n">aes</span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">avg_diff</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reorder</span><span class="p">(</span><span class="n">factor</span><span class="p">(</span><span class="n">modern_team</span><span class="p">),</span><span class="w"> </span><span class="n">avg_diff</span><span class="p">)))</span><span class="w"> </span><span class="o">+</span><span class="w">
+  </span><span class="n">geom_segment</span><span class="p">(</span><span class="n">aes</span><span class="p">(</span><span class="n">yend</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">modern_team</span><span class="p">,</span><span class="w"> </span><span class="n">xend</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">0</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w">
+  </span><span class="n">geom_point</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w">
+  </span><span class="n">scale_x_continuous</span><span class="p">(</span><span class="n">breaks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">-6</span><span class="o">:</span><span class="m">6</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w">
+  </span><span class="n">labs</span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'Wins per year above expected, given payroll'</span><span class="p">,</span><span class="w">
+       </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">''</span><span class="p">,</span><span class="w">
+       </span><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">''</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w">
+  </span><span class="n">theme</span><span class="p">(</span><span class="n">panel.grid.major.y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">element_blank</span><span class="p">(),</span><span class="w">
+        </span><span class="n">panel.grid.minor.x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">element_blank</span><span class="p">())</span></code></pre></figure>
+
+<p><img src="/assets/images/Rfig/unnamed-chunk-6-1.svg" alt="plot of chunk unnamed-chunk-6" /></p>
+
+<p>We can see that the <em>Moneyball</em> Oakland A's come out on top by a long shot. For a detailed year-by-year breakdown of each team from 1985 to 2015, <a href="http://shiny.science.psu.edu/jre206/mlb_payroll/">check out this cool app I made</a>.</p>
+
+                    </div>
+                </div>
+            </div>
+            <footer class="unit-foot">
+                <div class="unit-inner unit-foot-inner">
+                    <div class="post-buttons">
+                        <a class="internal gotop" href="#page" title="Back to Top">Back to Top</a>
+                        
+                            <div class="addthis_toolbox addthis_default_style addthis_32x32_style">
+    <small class="label">Share Post:</small>
+    <a class="btn-share-post addthis_button_email"></a>
+    <a class="btn-share-post addthis_button_facebook"></a>
+    <a class="btn-share-post addthis_button_google_plusone_share"></a>
+    <a class="btn-share-post addthis_button_reddit"></a>
+    <a class="btn-share-post addthis_button_twitter"></a>
+</div>
+<script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-59d6642f0906b28f"></script>
+                        
+                    </div>
+                    <nav class="pagination">
+                        
+                            <a class="internal" rel="prev" href="/blog/2016/09/replacing-slow-r-code-with-cuda/" title=" 'Replacing Slow R Code with CUDA'"> ← Replacing Slow R Code with CUDA</a>
+                        
+                        
+                            <a class="internal" rel="next" href="/blog/2017/03/interactive-correlation-matrix-with-d3/" title="Next Post 'Interactive Correlation Matrix with D3'">Interactive Correlation Matrix with D3 → </a>
+                        
+                    </nav>
+                </div>
+            </footer>
+            <div class="misc-content">
+                
+                    <script>
+    $(document).ready(function () {
+        var disqusPublicKey = "P0se57dcTUHLZ5wLHfxm3x11coj3QQCwTchefL9CbWCE1PuUxZ8hTwv7Zpy9sRcI";
+        var disqusShortname = "ensley";
+        var threadUrl = 'link:' + $('.comments .show-hidden').attr('data-disqus-url');
+
+        $.ajax({
+            type: 'GET',
+            url: '//disqus.com/api/3.0/threads/set.jsonp',
+            data: {
+                api_key: disqusPublicKey,
+                forum: disqusShortname,
+                thread: threadUrl
+            },
+            cache: false,
+            dataType: 'jsonp',
+            success: function (result) {
+                if (result.response.length === 1) {
+                    btnText = 'Show Comments (' + result.response[0].posts + ')';
+                    $('.comments .show-hidden').html(btnText);
+                }
+            }
+        });
+
+        $('.comments .show-hidden').on('click', function () {
+            $.ajaxSetup({cache: true});
+            $.getScript('//' + disqusShortname + '.disqus.com/embed.js');
+            $.ajaxSetup({cache: false});
+            $(this).remove();
+        });
+
+        if (/\#comments/.test(location.hash)) {
+            $('.comments .show-hidden').trigger('click');
+        }
+    });
+</script>
+
+                    <div class="comments">
+                        <button class="center-block show-hidden" title="Show Comments" data-disqus-url="http://localhost:4000/blog/2017/02/how-your-favorite-baseball-team-blows-its-money-revisiting-a-fivethirtyeight-analysis/">Show Comments</button>
+                        <div id="disqus_thread"></div>
+                    </div>
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer class="the-footer">
+    <div class="unit-foot">
+        <div class="unit-inner unit-foot-inner">
+            <div class="misc vcard">
+                <div class="about">
+                    <!-- <h4><a href="/">About</a></h4> -->
+                    
+                    <small>This site is powered by <a href="http://jekyllrb.com/">Jekyll</a>, <a href="https://kramdown.gettalong.org/">kramdown</a>, and <a href="https://pages.github.com/">GitHub Pages</a>.<br/>Based on the <a href="https://github.com/yizeng/jekyll-theme-simple-texture" target="_blank">Simple Texture</a> theme developed by <a href="http://yizeng.me" target="_blank">Yi Zeng</a>.</small>
+                </div>
+                <div class="social-links">
+                    
+                    <a class="ico-rss" href="/feed.xml" rel="me" target="_blank" title="feed"></a>
+                    
+                        
+                            <a class="ico-github" href="https://github.com/ensley/" rel="me" target="_blank" title="github"></a>
+                        
+                    
+                        
+                            <a class="ico-instagram" href="https://instagram.com/john.ensley/" rel="me" target="_blank" title="instagram"></a>
+                        
+                    
+                        
+                            <a class="ico-linkedin" href="https://linkedin.com/in/john-ensley-61455986/" rel="me" target="_blank" title="linkedin"></a>
+                        
+                    
+                        
+                            <a class="ico-twitter" href="https://twitter.com/john__ensley/" rel="me" target="_blank" title="twitter"></a>
+                        
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+    <a href="#" class="internal back-to-top">Back to Top</a>
+</footer>
+
+    </div>
+
+    <script>
+$(document).ready(function () {
+    var offset = 50,
+        duration = 500,
+        width = 960;
+    $(window).scroll(function () {
+        if ($(window).width() > width) {
+            if ($(this).scrollTop() > offset) {
+                $('footer').css('top', '20px');
+                $('footer .back-to-top').fadeIn(duration);
+            } else {
+                $('footer').css('top', 'auto');
+                $('footer .back-to-top').fadeOut(duration);
+            }
+        }
+    });
+    $(window).resize(function () {
+        if ($(window).width() < width) {
+            $('footer').css('top', 'auto');
+            $('footer .back-to-top').fadeOut(duration);
+        }
+        if ($(window).width() >= width && $(this).scrollTop() > offset) {
+            $('footer').css('top', '20px');
+            $('footer .back-to-top').fadeIn(duration);
+        }
+    });
+
+    $('footer .back-to-top, .gotop').on('click', function (event) {
+        event.preventDefault();
+        $('html, body').animate({
+            scrollTop: 0
+        }, duration);
+        return false;
+    });
+
+    $('.show-hidden').on('click', function () {
+        $(this).parent().next().toggleClass("hidden");
+        $(this).toggleClass("hidden");
+    });
+});
+</script>
+
+<!-- Google Analytics Event tracking -->
+
+<script>
+$(document).on('click', 'footer .back-to-top, .gotop', function (event) {
+    sendGaEvent('Blog', 'Back to Top', event.currentTarget);
+});
+$(document).on('click', '.show-hidden', function (event) {
+    sendGaEvent('Post', 'Show Hidden', event.currentTarget);
+});
+$(document).on('click', 'a.internal', function(event) {
+    sendGaEvent('Blog', 'Navigate', event.currentTarget);
+});
+$('.the-header').on('click', '.nav-link a, [class$=wrapper] .results a, .nav-link button', function(event) {
+    sendGaEvent('Blog', 'Navigate', event.currentTarget);
+});
+$('.the-header').on('click', '.nav-link button', function(event) {
+    sendGaEvent('Blog', 'Navigate', event.currentTarget);
+});
+$('.the-footer').on('click', '.about h4 a', function(event) {
+    sendGaEvent('Blog', 'Go to About', event.currentTarget);
+});
+$('.the-footer').on('click', '.social-links a', function(event) {
+    sendGaEvent('Blog', 'Click Social Link', event.currentTarget);
+});
+$('.unit-article').on('click', '.tag_box.categories a', function(event) {
+    sendGaEvent('Blog', 'Click Category', event.currentTarget);
+});
+$('.unit-article').on('click', '.tag_box.tags a', function(event) {
+    sendGaEvent('Blog', 'Click Tag', event.currentTarget);
+});
+$('.unit-article').on('click', '.comments .show-hidden', function(event) {
+    sendGaEvent('Post', 'Show Comments', event.currentTarget);
+});
+$('.unit-article').on('click', '.meta .author', function(event) {
+    sendGaEvent('Post', 'Show Author', event.currentTarget);
+});
+$('.unit-article').on('click', '.meta .license-icon', function(event) {
+    sendGaEvent('Post', 'Show License', event.currentTarget);
+});
+$('.unit-article').on('click', '.meta .list-tag a', function(event) {
+    sendGaEvent('Post', 'Click Tag', event.currentTarget);
+});
+$('.unit-article').on('click', '.meta .list-category', function(event) {
+    sendGaEvent('Post', 'Click Category', event.currentTarget);
+});
+$('.unit-foot').delegate('.addthis_toolbox .btn-share-post', 'click', function(event) {
+    sendGaEvent('Post', 'Share Post', event.currentTarget);
+});
+$('.search-wrapper').on('click', '.results a', function(event) {
+    sendGaEvent('Search', 'Click Search Result', event.currentTarget);
+});
+$('.search-wrapper').on('click', '.btn-close', function(event) {
+    sendGaEvent('Search', 'Close Search', event.currentTarget);
+});
+</script>
+
+
+
+<script src='//cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.4/jquery.fancybox.min.js'></script>
+<script src='//cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.4/helpers/jquery.fancybox-buttons.min.js'></script>
+<script src="/assets/javascripts/unveil/jquery.unveil.min.js"></script>
+
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+<script>
+    window.jQuery.fancybox || document.write('<script src="/assets/javascripts/fancybox/jquery.fancybox.pack.js?v=2.1.4"><\/script>')
+    window.jQuery.fancybox.helpers.buttons || document.write('<script src="/assets/javascripts/fancybox/helpers/jquery.fancybox-buttons.js?v=1.0.5"><\/script>')
+</script>
+
+<script>
+    $("head").append('<link rel="stylesheet" href="/assets/javascripts/fancybox/jquery.fancybox.css?v=2.1.4" type="text/css" />');
+    $("head").append('<link rel="stylesheet" href="/assets/javascripts/fancybox/helpers/jquery.fancybox-buttons.css?v=1.0.5" type="text/css" />');
+    $(".post-image").fancybox({
+        prevEffect: 'none',
+        nextEffect: 'none',
+        closeBtn: true,
+        helpers: {
+            title: {
+                type: 'float'
+            }
+        }
+    });
+    $(document).ready(function () {
+        $(".post-image > img").unveil(450);
+    });
+</script>
+
+</body>
+
+</html>

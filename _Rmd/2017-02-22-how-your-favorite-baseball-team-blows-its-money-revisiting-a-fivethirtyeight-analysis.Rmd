@@ -1,0 +1,127 @@
+---
+layout: post
+title: '"How Your Favorite Baseball Team Blows Its Money": Revisiting a FiveThirtyEight
+  Analysis'
+date: '2017-02-22'
+tags: ["Baseball", "R", "Rstats", "FiveThirtyEight"]
+categories: ["Sports"]
+---
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(ggthemes)
+knitr::opts_knit$set(root.dir = '../assets/data/mlb-payroll/')
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+
+In 2015, FiveThirtyEight [published an article](http://fivethirtyeight.com/features/dont-be-fooled-by-baseballs-small-budget-success-stories/) taking a look at one of the most common questions in baseball: does money buy success? Most major sports leagues in America have a "salary cap," a limit on the amount of money a team can spend on player salaries each year. This is used to promote parity across all teams - otherwise, teams with deep pockets could afford to sign all the top tier players, giving them a competitive advantage year after year. Major League Baseball doesn't have a salary cap though. The Los Angeles Dodgers paid their players a total of \$265 million in 2015, while the Cleveland Indians had a payroll of only \$59 million. So in general, FiveThirtyEight asked, does more money mean more wins?
+
+It would appeal to our affinity for underdogs if the answer was no, but unfortunately [that is not the case](http://fivethirtyeight.com/features/how-your-favorite-baseball-team-blows-its-money/). The gray curve on each of those graphs is the league-wide trend in winning percentage as a function of salary. Basically, the upward slope indicates that teams with higher payrolls tend to win more games.
+
+It's an interesting read. You'll notice that their x-axis is "standardized salary," ranging from about -2 to +2. The authors explain that "Salary and win percentage were standardized within each season to account for the league’s financial growth and changes in league competitiveness." They calculated a z-score for every team's payroll for each year. This means that for each team, they found the mean payroll for that year, subtracted it from the team's payroll, and divided by the year's standard deviation. The result is a number indicating how many standard deviations above or below the mean that team's payroll was. I wanted to look at a slightly different method for standardizing: percentiles. A percentile is a value below which a certain percentage of values lie. For example, the Dodgers had the highest payroll in the league in 2015, putting them in the 100th percentile; every other team's payroll was below theirs. The Pirates, on the other hand, had the 20th highest payroll of the 30 teams. They were in the 34th percentile.
+
+I found some data put together by [another blogger](http://blog.yhat.com/posts/replicating-five-thirty-eight-in-r.html) for a similar post. This data includes team-by-team payrolls and wins and losses, as well as a table mapping old teams (like the Montreal Expos) to the present-day versions (the Washington Nationals). There is also a table of official team colors that we'll use to make the final results look nice.
+
+```{r, message=FALSE, warning=FALSE}
+df <- read_csv('mlb-standings-and-payroll.csv')
+team_lookups <- read_csv('team-lookups.csv')
+team_colors <- read_csv('team-colors.csv')
+glimpse(df)
+glimpse(team_lookups)
+glimpse(team_colors)
+```
+
+First of all, the data only has reliable payroll information dating back to 1985. Let's filter out all teams from before 1985, drop columns we won't be using for this analysis, and join the table to the other two.
+
+```{r}
+df <- df %>% 
+  filter(year >= 1985) %>% 
+  select(tm, year, w, g, wins_losses, est_payroll) %>% 
+  left_join(team_lookups, by = c('tm' = 'historic_team')) %>% 
+  left_join(team_colors, by = c('modern_team' = 'tm'))
+glimpse(df)
+```
+
+So far so good. Next let's calculate the payroll percentiles for each year. To do that, we can group the teams by year and then use the `dplyr` package's [`percent_rank` function](https://cran.r-project.org/web/packages/dplyr/vignettes/window-functions.html#ranking-functions).
+
+```{r}
+df <- df %>% 
+  group_by(year) %>% 
+  mutate(rank = percent_rank(est_payroll))
+```
+
+To make the plots, we'll need a little bit of `ggplot` magic. We will go one division at a time and create a list of plot objects, and then use the `cowplot` package to plot them all at once.
+
+```{r, fig.height=16, fig.width=12}
+df$division <- as.factor(df$division)
+divisions <- levels(df$division)
+
+# create the plots, one division at a time
+plots <- vector('list', 6)
+for(i in seq_along(divisions)) {
+  df.division <- filter(df, division == divisions[i])
+  plots[[i]] <-
+    ggplot(df.division,
+           aes(x = rank,
+               y = wins_losses,
+               color = team_color)) +
+    geom_point(alpha = 0.75, size = 4) +
+    geom_hline(yintercept = 0.5) +
+    geom_vline(xintercept = 0.5) +
+    stat_smooth(data = within(df, modern_team <- NULL),
+                color = 'grey',
+                size = 1,
+                method = 'lm',
+                formula = y ~ poly(x, 2),
+                se=F) +
+    stat_smooth(size = 2,
+                method = 'lm',
+                formula = y ~ poly(x, 2),
+                se=F) +
+    scale_color_identity() +
+    scale_x_continuous(breaks = c(0, 0.5, 1),
+                       limits = c(-0.1,1.1),
+                       labels = c('0%','50%','100%')) +
+    scale_y_continuous(breaks = seq(0.3, 0.7, 0.1),
+                       limits = c(0.25, 0.75)) +
+    facet_wrap(~modern_team, ncol = 5, scales = 'free_x') +
+    theme_fivethirtyeight() +
+    ggtitle(divisions[i])
+}
+
+cowplot::plot_grid(plotlist = plots, ncol = 1)
+```
+
+Compare FiveThirtyEight's results, using z-scores, to mine above. They're actually pretty similar. The plots for some of the teams got "stretched" horizontally a little, which I think makes it easier to determine trends.
+
+Let's take this a little further. Notice the grey lines on each plot. Those are all the same - the average winning percentage at each payroll rank across the entire league. Teams would obviously prefer to be above that line, meaning that given their spending they won more games than one would expect. So it seems like if we took the distance from each point to the line and averaged them, we would have one number representing each team's "bang for their buck". Once we have those, we can put the teams in order from wisest to least-wise spenders.
+
+Let's do it!
+
+```{r}
+fit <- lm(wins_losses ~ poly(rank, 2), data=df)
+
+df <- df %>% 
+  mutate(expected_winpct = predict(fit, newdata = data.frame(rank = rank))) %>%
+  mutate(expected_w = expected_winpct*g) %>% 
+  mutate(diff_w = w - expected_w)
+
+rankings <- df %>%
+  group_by(modern_team) %>%
+  summarize(avg_diff = mean(diff_w)) %>%
+  arrange(desc(avg_diff))
+
+ggplot(rankings, aes(x = avg_diff, y = reorder(factor(modern_team), avg_diff))) +
+  geom_segment(aes(yend = modern_team, xend = 0)) +
+  geom_point() +
+  scale_x_continuous(breaks = -6:6) +
+  labs(x = 'Wins per year above expected, given payroll',
+       y = '',
+       title = '') +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank())
+```
+
+
+We can see that the *Moneyball* Oakland A's come out on top by a long shot. For a detailed year-by-year breakdown of each team from 1985 to 2015, [check out this cool app I made](http://shiny.science.psu.edu/jre206/mlb_payroll/).
