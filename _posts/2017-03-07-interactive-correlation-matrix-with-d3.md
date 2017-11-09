@@ -32,7 +32,7 @@ Recently I decided that if I wanted to improve my data visualization skills, I s
 
 Hearing about the steep learning curve scared me away from D3 at first, but ultimately I'm giving it a shot. After all, I'm not a total newcomer to JavaScript, and I like to think I can pick these types of things up pretty quickly, so maybe it won't be so bad.
 
-Here is my first attempt at making something useful: a correlation matrix where clicking on cell $$(i,j$$) draws the scatterplot between variables $$(i$$) and $$(j$$). I borrowed heavily from [Karl Broman's example](https://www.biostat.wisc.edu/~kbroman/D3/corr_w_scatter/). I found it very helpful to use that as a reference, since I'm not yet comfortable enough to make anything moderately involved on my own.
+Here is my first attempt at making something useful: a correlation matrix where clicking on cell $$(i,j)$$ draws the scatterplot between variables $$(i)$$ and $$(j)$$. I borrowed heavily from [Karl Broman's example](https://www.biostat.wisc.edu/~kbroman/D3/corr_w_scatter/). I found it very helpful to use that as a reference, since I'm not yet comfortable enough to make anything moderately involved on my own.
 
 I got the data from a recent [Kaggle competition](https://www.kaggle.com/c/house-prices-advanced-regression-techniques) on housing prices. I did a small amount of cleaning and removed all the categorical variables for the purposes of this illustration.
 
@@ -43,8 +43,8 @@ You can see the code [here](https://bl.ocks.org/ensley/b289692852c62912208b4ea5b
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script type='text/javascript'>
 
-    var w = 400,
-        h = 400;
+    var w = 500,
+        h = 500;
     
     var margin = {top: 50, right: 20, bottom: 70, left: 20};
     var pad = 80;

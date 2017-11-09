@@ -12,6 +12,13 @@
 <!--[if IE]><meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'><![endif]-->
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+<meta name="theme-color" content="#eeeeee">
+
 <!-- Begin Jekyll SEO tag v2.3.0 -->
 <title>Running CUDA Scripts on Penn State&#39;s ICS-ACI Cluster | John Ensley</title>
 <meta property="og:title" content="Running CUDA Scripts on Penn State&#39;s ICS-ACI Cluster" />
@@ -294,48 +301,6 @@ function sendGaEvent(category, action, element, value) {
                 </div>
             </footer>
             <div class="misc-content">
-                
-                    <script>
-    $(document).ready(function () {
-        var disqusPublicKey = "P0se57dcTUHLZ5wLHfxm3x11coj3QQCwTchefL9CbWCE1PuUxZ8hTwv7Zpy9sRcI";
-        var disqusShortname = "ensley";
-        var threadUrl = 'link:' + $('.comments .show-hidden').attr('data-disqus-url');
-
-        $.ajax({
-            type: 'GET',
-            url: '//disqus.com/api/3.0/threads/set.jsonp',
-            data: {
-                api_key: disqusPublicKey,
-                forum: disqusShortname,
-                thread: threadUrl
-            },
-            cache: false,
-            dataType: 'jsonp',
-            success: function (result) {
-                if (result.response.length === 1) {
-                    btnText = 'Show Comments (' + result.response[0].posts + ')';
-                    $('.comments .show-hidden').html(btnText);
-                }
-            }
-        });
-
-        $('.comments .show-hidden').on('click', function () {
-            $.ajaxSetup({cache: true});
-            $.getScript('//' + disqusShortname + '.disqus.com/embed.js');
-            $.ajaxSetup({cache: false});
-            $(this).remove();
-        });
-
-        if (/\#comments/.test(location.hash)) {
-            $('.comments .show-hidden').trigger('click');
-        }
-    });
-</script>
-
-                    <div class="comments">
-                        <button class="center-block show-hidden" title="Show Comments" data-disqus-url="http://localhost:4000/blog/2016/09/running-cuda-scripts-on-penn-state-aci-cluster/">Show Comments</button>
-                        <div id="disqus_thread"></div>
-                    </div>
                 
             </div>
         </div>
