@@ -49,9 +49,9 @@ blog:
   # cc_license_image: /assets/images/theme/cc-by-sa.png # An image of your CC License. 
   # footer_content: <small>This site is powered by <a href="http://jekyllrb.com/">Jekyll</a>, <a href="https://kramdown.gettalong.org/">kramdown</a>, and <a href="https://pages.github.com/">GitHub Pages</a>.</small>
 
-disqus:
-  shortname: ensley
-  public_key: P0se57dcTUHLZ5wLHfxm3x11coj3QQCwTchefL9CbWCE1PuUxZ8hTwv7Zpy9sRcI
+# disqus:
+#   shortname: ensley
+#   public_key: P0se57dcTUHLZ5wLHfxm3x11coj3QQCwTchefL9CbWCE1PuUxZ8hTwv7Zpy9sRcI
 google_analytics: 'UA-46465113-2'
 # AddThis sharing plugin. See http://www.addthis.com/. E.g. ra-53329e27694534j5 
 addthis_public_id: ra-59d6642f0906b28f
